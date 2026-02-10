@@ -541,14 +541,16 @@
                 const images = response.images || [];
                 const totalAvailable = response.total_available || 0;
                 
-                // If this is an auto-refresh and no changes in available images, don't update UI
-                if (isAutoRefresh && 
-                    images.length === displayedImages.length && 
-                    totalAvailable === lastTotalAvailable &&
-                    images.every((img, i) => img === displayedImages[i])) {
-                    console.log('No changes detected during auto-refresh');
-                    return;
-                }
+	                // Auto-refresh should not reshuffle UI if the current page of images hasn't changed.
+	                // New images arriving beyond the current page should not cause the grid to twitch.
+	                if (isAutoRefresh &&
+	                    images.length === displayedImages.length &&
+	                    images.every((img, i) => img === displayedImages[i])) {
+	                    lastTotalAvailable = totalAvailable;
+                        updateCounts();
+	                    console.log('No visible changes detected during auto-refresh');
+	                    return;
+	                }
                 
                 // Update the displayed images
 	                displayedImages = images;

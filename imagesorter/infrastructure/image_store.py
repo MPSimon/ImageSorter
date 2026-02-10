@@ -32,6 +32,17 @@ class _MaxStr(str):
         return str(self) > str(other)
 
 
+class _MaxKey:
+    def __init__(self, key, name: str):
+        self.key = key
+        self.name = name
+
+    def __lt__(self, other):
+        # Invert ordering so heapq (a min-heap) acts like a max-heap by key.
+        return self.key > other.key
+
+
+
 @dataclass(frozen=True)
 class Counts:
     input: int
@@ -65,7 +76,7 @@ class ImageStore:
         self.ensure_dirs()
 
         total = 0
-        heap: List[_MaxStr] = []
+        heap: List[_MaxKey] = []
         with os.scandir(directory) as it:
             for entry in it:
                 if not entry.is_file():
@@ -78,14 +89,22 @@ class ImageStore:
                 if not _is_image_filename(name):
                     continue
                 total += 1
+                try:
+                    mtime_ns = entry.stat(follow_symlinks=False).st_mtime_ns
+                except OSError:
+                    mtime_ns = 0
+                key = (mtime_ns, name)
                 if count <= 0:
                     continue
                 if len(heap) < count:
-                    heapq.heappush(heap, _MaxStr(name))
+                    heapq.heappush(heap, _MaxKey(key, name))
                 else:
-                    if name < heap[0]:
-                        heapq.heapreplace(heap, _MaxStr(name))
-        batch = sorted(str(x) for x in heap)
+                    # heap[0] is the current worst (largest) by key
+                    if key < heap[0].key:
+                        heapq.heapreplace(heap, _MaxKey(key, name))
+
+        heap.sort(key=lambda x: x.key)
+        batch = [x.name for x in heap]
         return batch, total
 
     def list_images(self, count: int, processed: Set[str]) -> Tuple[List[str], int]:
