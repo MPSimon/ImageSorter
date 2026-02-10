@@ -17,15 +17,16 @@ class ImageSorterService:
         self._state = state
 
     def list_images(self, count: int, folder: str = "input") -> Tuple[List[str], int]:
-        processed = self._state.processed if folder in ("input", "unlabeled") else set()
-        return self._store.list_images_in_folder(folder=folder, count=count, processed=processed)
+        # Don't filter based on per-process memory. With multiple gunicorn workers,
+        # that causes inconsistent responses and visible flicker in the UI.
+        return self._store.list_images_in_folder(folder=folder, count=count, processed=set())
 
     def label_image(self, filename: str, label: str, source_folder: str = "input") -> None:
         self._store.move_between_folders(filename=filename, source_folder=source_folder, dest_folder=label)
-        self._state.processed.add(filename)
 
     def reset_processed(self) -> None:
-        self._state.processed.clear()
+        # No-op (kept for API compatibility).
+        return
 
     def counts(self) -> Dict[str, int]:
         c = self._store.counts()
