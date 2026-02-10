@@ -150,9 +150,19 @@ def create_app() -> Flask:
 
     @app.post("/api/upload")
     def api_upload():
-        token = request.headers.get("X-Upload-Token", "")
-        if not upload_token_ok(token):
-            return jsonify({"error": "unauthorized"}), 401
+        # Upload is allowed when:
+        # - app is password-protected AND caller has a logged-in session, OR
+        # - caller provides a valid upload token, OR
+        # - password is disabled (dev/local use)
+        pw_enabled = bool(os.getenv("IMAGESORTER_PASSWORD", ""))
+        if pw_enabled and session.get("authed") is True:
+            pass
+        else:
+            token = request.headers.get("X-Upload-Token", "")
+            if pw_enabled and not upload_token_ok(token):
+                return jsonify({"error": "unauthorized"}), 401
+            if (not pw_enabled) and token and (not upload_token_ok(token)):
+                return jsonify({"error": "unauthorized"}), 401
 
         if "file" not in request.files:
             return jsonify({"error": "multipart form field 'file' required"}), 400

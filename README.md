@@ -36,32 +36,45 @@ Each click immediately moves the file into the corresponding folder.
 ## Docker (Recommended for VPS)
 
 1. Set environment variables (example):
-   - `IMAGESORTER_SECRET_KEY` (required for login sessions)
-   - `IMAGESORTER_PASSWORD` (set to enable login; leave empty to disable)
-   - `IMAGESORTER_UPLOAD_TOKEN` (token for `POST /api/upload`)
+   - `IMAGESORTER_SECRET_KEY` (required for login sessions; set a long random string)
+   - `IMAGESORTER_PASSWORD` (required to protect the UI; single shared password)
+   - `IMAGESORTER_UPLOAD_TOKEN` (optional; enables token-based uploads to `POST /api/upload`)
 
 2. Run:
    ```
    docker compose up -d --build
    ```
 
-3. The container reads `/Users/max/www/ImageSorter/settings.docker.json` (mounted as `/app/settings.json`) and uses `/data/...` paths inside the container.
+3. The container reads `settings.docker.json` (mounted as `/app/settings.json`) and uses `/data/...` paths inside the container.
+
+4. Open:
+   - `http://localhost:5050/`
+   - On a VPS: `http://<server-ip>:5050/` (recommended: put it behind a reverse proxy + TLS)
 
 ## API
 
 - `POST /api/label` (session required if `IMAGESORTER_PASSWORD` is set)
-  - JSON: `{ "filename": "...", "label": "good|regenerate|upscale|bad" }`
+  - JSON: `{ "filename": "...", "label": "good|regenerate|upscale|bad|input", "source": "input|good|regenerate|upscale|bad" }`
 
-- `POST /api/upload` (token required)
-  - Header: `X-Upload-Token: <token>`
-  - Multipart: `file=@image.jpg`
+- `POST /api/process` (session required)
+  - JSON: `{ "folder": "good|regenerate|upscale" }`
+  - Note: currently a placeholder for future automation.
+
+- `POST /api/upload`
+  - If `IMAGESORTER_PASSWORD` is set: allowed for logged-in users; optional token support.
+  - If `IMAGESORTER_PASSWORD` is not set: allowed for local/dev; optionally enforce with token.
+  - Header (optional): `X-Upload-Token: <token>`
+  - Multipart: `file=@image.jpg` (uploads into Unlabeled)
 
 ## Usage
 1. Set your input and output directories in the sidebar (or edit `settings.json`)
 2. Click "Save Settings" to persist your configuration
 3. Click "Load Images" to display images from your input directory
 4. Click a quadrant on an image to label it (the file is moved immediately)
-5. Repeat until all images are sorted
+5. Use the top tabs to browse labeled folders and re-label images
+6. In labeled folders, click "Unlabel" to send an image back to Unlabeled
+7. In Good/Regen/Upscale, click "Process Images In This Folder" to trigger future automation
+8. Drag and drop images onto the grid while on Unlabeled to upload them
 
 ## Development Notes
 
