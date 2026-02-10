@@ -40,6 +40,8 @@ Each click immediately moves the file into the corresponding folder.
    - `IMAGESORTER_PASSWORD` (required to protect the UI; single shared password)
    - `IMAGESORTER_UPLOAD_TOKEN` (optional; enables token-based uploads to `POST /api/upload`)
 
+   Copy `.env.example` to `.env` and fill it in.
+
 2. Run:
    ```
    docker compose up -d --build
@@ -49,7 +51,13 @@ Each click immediately moves the file into the corresponding folder.
 
 4. Open:
    - `http://localhost:5050/`
-   - On a VPS: `http://<server-ip>:5050/` (recommended: put it behind a reverse proxy + TLS)
+   - On a VPS: run behind nginx (recommended) so the app is not exposed on `:5050` publicly.
+
+## Nginx (VPS)
+
+- Docker is configured to bind only to `127.0.0.1:5050` on the server.
+- Use nginx to proxy a domain to the container.
+- Template: `deploy/nginx/imagesorter.conf`
 
 ## API
 

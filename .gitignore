@@ -5,6 +5,7 @@ ENV/
 
 # User-specific settings
 settings.json
+.env
 
 # Python cache files
 __pycache__/

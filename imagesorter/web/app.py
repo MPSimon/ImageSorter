@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict
 
 from flask import Flask, jsonify, redirect, render_template, render_template_string, request, send_from_directory, session
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from imagesorter.application.services import AppState, ImageSorterService
 from imagesorter.domain.settings import Settings
@@ -32,6 +33,7 @@ def _build_service(store: SettingsStore, state: AppState) -> ImageSorterService:
 def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(Path(__file__).parent / "templates"))
     app.secret_key = _secret_key()
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
     store = SettingsStore(_settings_path())
     state = AppState(processed=set())
