@@ -1,1 +1,19 @@
-{"input_dir": "C:\\AI\\ComfyUI\\output\\PixarChar\\Character_Agmented", "good_dir": "C:\\AI\\ComfyUI\\output\\PixarChar\\Good", "bad_dir": "C:\\AI\\ComfyUI\\output\\PixarChar\\bad", "image_count": 100, "image_size": 357, "grid_columns": 7}
+{
+  "click_layout": "quadrants",
+  "grid_columns": 7,
+  "image_count": 100,
+  "image_size": 357,
+  "input_dir": "/Users/max/www/NanoBananaReplace/output",
+  "label_dirs": {
+    "bad": "/Users/max/www/NanoBananaReplace/output/bad",
+    "good": "/Users/max/www/NanoBananaReplace/output/good",
+    "regenerate": "/Users/max/www/NanoBananaReplace/output/regenerate",
+    "upscale": "/Users/max/www/NanoBananaReplace/output/upscale"
+  },
+  "labels": [
+    "good",
+    "regenerate",
+    "upscale",
+    "bad"
+  ]
+}

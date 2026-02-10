@@ -61,15 +61,88 @@
         .main-content.expanded {
             margin-left: 0;
         }
-        .header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: var(--header-height);
-        }
+	        .header {
+	            background-color: var(--primary-color);
+	            color: white;
+	            padding: 0 20px;
+	            display: flex;
+	            align-items: center;
+	            justify-content: space-between;
+	            height: var(--header-height);
+	        }
+            .top-nav {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            .folder-tabs {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px;
+                border-radius: 999px;
+                background: rgba(255,255,255,0.10);
+                border: 1px solid rgba(255,255,255,0.16);
+            }
+            .folder-btn {
+                appearance: none;
+                border: 0;
+                background: transparent;
+                color: rgba(255,255,255,0.92);
+                padding: 8px 12px;
+                border-radius: 999px;
+                font-weight: 700;
+                font-size: 12px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                cursor: pointer;
+                transition: background-color 120ms ease, transform 120ms ease;
+            }
+            .folder-btn:hover {
+                background: rgba(255,255,255,0.12);
+                transform: translateY(-1px);
+            }
+            .folder-btn.active {
+                background: rgba(255,255,255,0.22);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+            }
+            .corner-action {
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                z-index: 5;
+                border: 0;
+                border-radius: 999px;
+                padding: 8px 10px;
+                cursor: pointer;
+                font-weight: 800;
+                font-size: 12px;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: rgba(255,255,255,0.92);
+                background: rgba(2, 6, 23, 0.55);
+                border: 1px solid rgba(255,255,255,0.16);
+                box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+                transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
+                opacity: 0.0;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .image-item:hover .corner-action {
+                opacity: 1.0;
+            }
+            .corner-action:hover {
+                transform: translateY(-1px);
+                background: rgba(239, 68, 68, 0.65);
+            }
+            .corner-action svg {
+                width: 14px;
+                height: 14px;
+                flex: 0 0 auto;
+                opacity: 0.95;
+            }
         .toggle-sidebar {
             background: none;
             border: none;
@@ -77,35 +150,81 @@
             font-size: 1.5em;
             cursor: pointer;
         }
-        .image-container {
-            flex-grow: 1;
-            display: grid;
-            grid-template-columns: repeat(var(--grid-columns), 1fr);
-            gap: 10px;
-            padding: 10px;
-            overflow-y: auto;
-        }
-        .image-item {
-            position: relative;
-            padding-bottom: 100%; /* 1:1 Aspect Ratio */
-            background-color: var(--card-background);
-            border-radius: 5px;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
-        .image-item:hover {
-            transform: scale(1.05);
-        }
-        .image-item img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
+		        .image-container {
+		            flex-grow: 1;
+		            display: grid;
+		            grid-template-columns: repeat(var(--grid-columns), 1fr);
+                    align-content: start;
+		            gap: 14px;
+		            padding: 18px;
+		            overflow-y: auto;
+		        }
+		        .image-item {
+		            position: relative;
+                    /* Portrait base slot (3:4). Using padding keeps height stable across browsers. */
+		            padding-bottom: 133.333%;
+		            background-color: var(--card-background);
+		            border-radius: 5px;
+		            cursor: pointer;
+		            transition: transform 0.3s ease;
+		            overflow: hidden;
+		            border: 1px solid var(--border-color);
+		        }
+	        .image-item:hover {
+	            transform: scale(1.03);
+                z-index: 2;
+	        }
+	        .image-item img {
+	            position: absolute;
+	            top: 0;
+	            left: 0;
+	            width: 100%;
+	            height: 100%;
+	            object-fit: contain;
+	        }
+            .image-overlay {
+                position: absolute;
+                inset: 0;
+                display: none;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                opacity: 0;
+                transition: opacity 120ms ease;
+                pointer-events: none;
+            }
+            .image-item:hover .image-overlay {
+                display: grid;
+                opacity: 1;
+            }
+            .image-cell {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                background: rgba(2, 6, 23, 0.16);
+                backdrop-filter: blur(8px);
+            }
+            .image-cell .zone-label {
+                font-size: 12px;
+                letter-spacing: 0.10em;
+                text-transform: uppercase;
+                padding: 8px 12px;
+                border-radius: 999px;
+                color: rgba(255, 255, 255, 0.92);
+                background: rgba(2, 6, 23, 0.55);
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+                text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+            }
+            .image-cell.active {
+                background: rgba(255, 255, 255, 0.10);
+            }
+            .image-cell.active .zone-label {
+                border-color: color-mix(in srgb, var(--zone-color, #999) 70%, rgba(255,255,255,0.25));
+                box-shadow:
+                    0 0 0 2px color-mix(in srgb, var(--zone-color, #999) 70%, rgba(255,255,255,0.25)),
+                    0 12px 28px rgba(0, 0, 0, 0.28);
+            }
         .selected::before {
             content: "";
             position: absolute;
@@ -209,14 +328,22 @@
                         <label for="input-dir">Input Directory:</label>
                         <input type="text" id="input-dir">
                     </div>
-                    <div class="control-group">
-                        <label for="good-dir">Good Directory:</label>
-                        <input type="text" id="good-dir">
-                    </div>
-                    <div class="control-group">
-                        <label for="bad-dir">Bad Directory:</label>
-                        <input type="text" id="bad-dir">
-                    </div>
+	                    <div class="control-group">
+	                        <label for="good-dir">Good Directory:</label>
+	                        <input type="text" id="good-dir">
+	                    </div>
+	                    <div class="control-group">
+	                        <label for="regenerate-dir">Regenerate Directory:</label>
+	                        <input type="text" id="regenerate-dir">
+	                    </div>
+	                    <div class="control-group">
+	                        <label for="upscale-dir">Upscale Directory:</label>
+	                        <input type="text" id="upscale-dir">
+	                    </div>
+	                    <div class="control-group">
+	                        <label for="bad-dir">Bad Directory:</label>
+	                        <input type="text" id="bad-dir">
+	                    </div>
                     <div class="control-group">
                         <label for="grid-columns">Grid Columns: <span id="column-value">5</span></label>
                         <input type="range" id="grid-columns" min="1" max="10" value="5">
@@ -235,101 +362,164 @@
                         </label>
                     </div>
                 </div>
-                <div class="directory-counts">
-                    <div class="count-item">
-                        <div>Input</div>
-                        <div id="input-count" class="count-value">0</div>
-                    </div>
-                    <div class="count-item">
-                        <div>Good</div>
-                        <div id="good-count" class="count-value">0</div>
-                    </div>
-                    <div class="count-item">
-                        <div>Bad</div>
-                        <div id="bad-count" class="count-value">0</div>
-                    </div>
-                </div>
+	                <div class="directory-counts">
+		                    <div class="count-item">
+		                        <div>Unlabeled</div>
+		                        <div id="input-count" class="count-value">0</div>
+		                    </div>
+	                    <div class="count-item">
+	                        <div>Good</div>
+	                        <div id="good-count" class="count-value">0</div>
+	                    </div>
+	                    <div class="count-item">
+	                        <div>Regen</div>
+	                        <div id="regenerate-count" class="count-value">0</div>
+	                    </div>
+	                    <div class="count-item">
+	                        <div>Upscale</div>
+	                        <div id="upscale-count" class="count-value">0</div>
+	                    </div>
+	                    <div class="count-item">
+	                        <div>Bad</div>
+	                        <div id="bad-count" class="count-value">0</div>
+	                    </div>
+	                </div>
                 
-                <button id="submit-btn" style="margin-top: 20px; width: 100%; padding: 15px; font-size: 1.1em;">Submit Selection</button>
-            </div>
-        </aside>
-        <main class="main-content">
-            <header class="header">
-                <button class="toggle-sidebar">☰</button>
-                <div style="flex-grow: 1;"></div>
-            </header>
-            <div id="image-container" class="image-container"></div>
-        </main>
+	                <div style="margin-top: 20px; padding: 12px; border: 1px solid #eee; border-radius: 8px;">
+	                    <div style="font-weight: 700; margin-bottom: 8px;">Click Zones</div>
+	                    <div id="zone-legend" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.95em;"></div>
+	                    <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+	                        Click a quadrant to label and move the image immediately.
+	                    </div>
+	                </div>
+
+                    <div style="margin-top: 12px; padding: 12px; border: 1px solid #eee; border-radius: 8px;">
+                        <div style="font-weight: 700; margin-bottom: 8px;">Processing</div>
+                        <div id="process-folder-status" style="font-size: 0.9em; opacity: 0.85; margin-bottom: 10px; display: none;"></div>
+                        <button id="process-folder-btn" style="width: 100%; display: none;">Process Images In This Folder</button>
+                        <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.75;">
+                            For future automation: this will trigger actions for images currently in the selected folder.
+                        </div>
+                    </div>
+	            </div>
+	        </aside>
+	        <main class="main-content">
+	            <header class="header">
+	                <button class="toggle-sidebar">☰</button>
+                    <div class="top-nav" style="flex-grow: 1; justify-content: flex-end;">
+                        <div class="folder-tabs" id="folder-tabs">
+                            <button class="folder-btn active" data-folder="input">Unlabeled</button>
+                            <button class="folder-btn" data-folder="good">Good</button>
+                            <button class="folder-btn" data-folder="regenerate">Regen</button>
+                            <button class="folder-btn" data-folder="upscale">Upscale</button>
+                            <button class="folder-btn" data-folder="bad">Bad</button>
+                        </div>
+	                    </div>
+	            </header>
+	            <div id="image-container" class="image-container"></div>
+	        </main>
     </div>
 
     <script>
-        const sidebar = document.querySelector('.sidebar');
-        const mainContent = document.querySelector('.main-content');
-        const toggleSidebarBtn = document.querySelector('.toggle-sidebar');
-        const imageContainer = document.getElementById('image-container');
-        const submitBtn = document.getElementById('submit-btn');
-        const loadImagesBtn = document.getElementById('load-images-btn');
-        const saveSettingsBtn = document.getElementById('save-settings-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const gridColumnsSlider = document.getElementById('grid-columns');
-        const columnValue = document.getElementById('column-value');
-        const imageCountInput = document.getElementById('image-count-input');
-        const inputDirInput = document.getElementById('input-dir');
-        const goodDirInput = document.getElementById('good-dir');
-        const badDirInput = document.getElementById('bad-dir');
-        const inputCountElement = document.getElementById('input-count');
-        const goodCountElement = document.getElementById('good-count');
-        const badCountElement = document.getElementById('bad-count');
-        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
-        const autoRefreshStatus = document.getElementById('auto-refresh-status');
-        
-        let selectedImages = new Set();
-        let displayedImages = [];
-        let autoRefreshInterval = null;
-        let lastTotalAvailable = 0;
+	        const sidebar = document.querySelector('.sidebar');
+	        const mainContent = document.querySelector('.main-content');
+	        const toggleSidebarBtn = document.querySelector('.toggle-sidebar');
+	        const imageContainer = document.getElementById('image-container');
+            const folderTabs = document.getElementById('folder-tabs');
+	        const zoneLegend = document.getElementById('zone-legend');
+	        const loadImagesBtn = document.getElementById('load-images-btn');
+	        const saveSettingsBtn = document.getElementById('save-settings-btn');
+	        const resetBtn = document.getElementById('reset-btn');
+	        const gridColumnsSlider = document.getElementById('grid-columns');
+	        const columnValue = document.getElementById('column-value');
+	        const imageCountInput = document.getElementById('image-count-input');
+	        const inputDirInput = document.getElementById('input-dir');
+	        const goodDirInput = document.getElementById('good-dir');
+	        const regenerateDirInput = document.getElementById('regenerate-dir');
+	        const upscaleDirInput = document.getElementById('upscale-dir');
+	        const badDirInput = document.getElementById('bad-dir');
+	        const inputCountElement = document.getElementById('input-count');
+	        const goodCountElement = document.getElementById('good-count');
+	        const regenerateCountElement = document.getElementById('regenerate-count');
+	        const upscaleCountElement = document.getElementById('upscale-count');
+	        const badCountElement = document.getElementById('bad-count');
+	        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+	        const autoRefreshStatus = document.getElementById('auto-refresh-status');
+            const processFolderBtn = document.getElementById('process-folder-btn');
+            const processFolderStatus = document.getElementById('process-folder-status');
+	        
+	        let displayedImages = [];
+	        let autoRefreshInterval = null;
+	        let lastTotalAvailable = 0;
+            let appConfig = null;
+            let currentFolder = 'input';
+
+            const ZONE_COLORS = {
+                good: '#22c55e',
+                regenerate: '#f59e0b',
+                upscale: '#3b82f6',
+                bad: '#ef4444',
+            };
 
         toggleSidebarBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
         });
 
-        async function fetchWithErrorHandling(url, options = {}) {
-            try {
-                const response = await fetch(url, options);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error('Fetch error:', error);
-                alert(`Error: ${error.message}`);
-            }
-        }
+	        async function fetchWithErrorHandling(url, options = {}) {
+	            try {
+	                const response = await fetch(url, options);
+                    let payload = null;
+                    try {
+                        payload = await response.json();
+                    } catch (_) {
+                        payload = null;
+                    }
+	                if (!response.ok) {
+                        const msg = (payload && payload.error) ? payload.error : `HTTP error! status: ${response.status}`;
+	                    throw new Error(msg);
+	                }
+	                return payload;
+	            } catch (error) {
+	                console.error('Fetch error:', error);
+	                alert(`Error: ${error.message}`);
+	            }
+	        }
 
-        async function loadSettings() {
-            console.log('Loading settings...');
-            const settings = await fetchWithErrorHandling('/settings');
-            if (settings) {
-                inputDirInput.value = settings.input_dir || '';
-                goodDirInput.value = settings.good_dir || '';
-                badDirInput.value = settings.bad_dir || '';
-                imageCountInput.value = settings.image_count || 20;
-                gridColumnsSlider.value = settings.grid_columns || 5;
-                updateGridColumns(gridColumnsSlider.value);
-                console.log('Settings loaded successfully');
-            }
-        }
+	        async function loadSettings() {
+	            console.log('Loading settings...');
+	            const settings = await fetchWithErrorHandling('/api/config');
+	            if (settings) {
+                    appConfig = settings;
+	                inputDirInput.value = settings.input_dir || '';
+	                const labelDirs = settings.label_dirs || {};
+	                goodDirInput.value = labelDirs.good || settings.good_dir || '';
+                    regenerateDirInput.value = labelDirs.regenerate || '';
+                    upscaleDirInput.value = labelDirs.upscale || '';
+	                badDirInput.value = labelDirs.bad || settings.bad_dir || '';
+	                imageCountInput.value = settings.image_count || 20;
+	                gridColumnsSlider.value = settings.grid_columns || 5;
+	                updateGridColumns(gridColumnsSlider.value);
+                    renderZoneLegend(settings.labels || ['good', 'regenerate', 'upscale', 'bad']);
+	                console.log('Settings loaded successfully');
+	            }
+	        }
 
-        async function saveSettings() {
-            console.log('Saving settings...');
-            const settings = {
-                input_dir: inputDirInput.value,
-                good_dir: goodDirInput.value,
-                bad_dir: badDirInput.value,
-                image_count: parseInt(imageCountInput.value),
-                grid_columns: parseInt(gridColumnsSlider.value)
-            };
-            const result = await fetchWithErrorHandling('/settings', {
+	        async function saveSettings() {
+	            console.log('Saving settings...');
+	            const settings = {
+	                input_dir: inputDirInput.value,
+                    label_dirs: {
+                        ...(appConfig && appConfig.label_dirs ? appConfig.label_dirs : {}),
+                        good: goodDirInput.value,
+                        regenerate: regenerateDirInput.value,
+                        upscale: upscaleDirInput.value,
+                        bad: badDirInput.value,
+                    },
+	                image_count: parseInt(imageCountInput.value),
+	                grid_columns: parseInt(gridColumnsSlider.value)
+	            };
+	            const result = await fetchWithErrorHandling('/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -342,10 +532,10 @@
             }
         }
 
-        async function loadImages(isAutoRefresh = false) {
+	        async function loadImages(isAutoRefresh = false) {
             console.log(isAutoRefresh ? 'Auto-refreshing images...' : 'Loading images...');
             const count = imageCountInput.value;
-            const response = await fetchWithErrorHandling(`/images?count=${count}`);
+	            const response = await fetchWithErrorHandling(`/images?count=${count}&folder=${encodeURIComponent(currentFolder)}`);
             
             if (response) {
                 const images = response.images || [];
@@ -361,30 +551,70 @@
                 }
                 
                 // Update the displayed images
-                displayedImages = images;
-                lastTotalAvailable = totalAvailable;
+	                displayedImages = images;
+	                lastTotalAvailable = totalAvailable;
                 
                 // Clear the container
                 imageContainer.innerHTML = '';
                 
                 // Add images to the container
-                if (images.length > 0) {
-                    images.forEach(image => {
-                        const imgContainer = document.createElement('div');
-                        imgContainer.classList.add('image-item');
-                        const img = document.createElement('img');
-                        img.src = `/image/${image}`;
-                        img.alt = image;
-                        imgContainer.appendChild(img);
-                        
-                        // If this image was previously selected, mark it as selected
-                        if (selectedImages.has(image)) {
-                            imgContainer.classList.add('selected');
-                        }
-                        
-                        imgContainer.addEventListener('click', () => toggleSelection(imgContainer, image));
-                        imageContainer.appendChild(imgContainer);
-                    });
+	                if (images.length > 0) {
+		                    images.forEach(image => {
+		                        const imgContainer = document.createElement('div');
+		                        imgContainer.classList.add('image-item');
+		                        const img = document.createElement('img');
+		                        img.src = `/image/${encodeURIComponent(image)}?folder=${encodeURIComponent(currentFolder)}`;
+		                        img.alt = image;
+		                        imgContainer.appendChild(img);
+
+                                if (currentFolder !== 'input') {
+                                    const back = document.createElement('button');
+                                    back.className = 'corner-action';
+                                    back.innerHTML = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 14l-4-4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 20v-4a4 4 0 0 0-4-4H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Unlabel</span>`;
+                                    back.addEventListener('click', async (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        await moveBackToUnlabeled(imgContainer, image);
+                                    });
+                                    imgContainer.appendChild(back);
+                                }
+
+                            const overlay = document.createElement('div');
+                            overlay.className = 'image-overlay';
+
+	                            const labels = (appConfig && appConfig.labels) ? appConfig.labels : ['good', 'regenerate', 'upscale', 'bad'];
+	                            const order = labels.slice(0, 4);
+	                            const cells = [];
+	                            order.forEach((label) => {
+	                                const cell = document.createElement('div');
+	                                cell.className = 'image-cell';
+	                                cell.style.setProperty('--zone-color', ZONE_COLORS[label] || '#999');
+
+	                                const text = document.createElement('div');
+	                                text.className = 'zone-label';
+	                                text.textContent = label;
+	                                cell.appendChild(text);
+
+	                                overlay.appendChild(cell);
+	                                cells.push(cell);
+	                            });
+	                            imgContainer.appendChild(overlay);
+
+	                            imgContainer.addEventListener('mousemove', (ev) => {
+	                                const idx = quadrantForClick(imgContainer, ev);
+	                                for (let i = 0; i < cells.length; i++) {
+	                                    cells[i].classList.toggle('active', i === idx);
+	                                }
+	                            });
+	                            imgContainer.addEventListener('mouseleave', () => {
+	                                for (let i = 0; i < cells.length; i++) {
+	                                    cells[i].classList.remove('active');
+	                                }
+	                            });
+
+                            imgContainer.addEventListener('click', (ev) => handleZoneClick(ev, imgContainer, image));
+		                        imageContainer.appendChild(imgContainer);
+		                    });
                     
                     // If we have more images available than we're showing, add a message
                     if (totalAvailable > images.length) {
@@ -402,25 +632,71 @@
                     imageContainer.appendChild(noImagesMsg);
                 }
                 
-                // Only clear selections on manual refresh
-                if (!isAutoRefresh) {
-                    selectedImages.clear();
-                }
-                
-                updateCounts();
-                console.log(`${images.length} images loaded successfully (${totalAvailable} available)`);
-            }
-        }
+	                updateCounts();
+	                console.log(`${images.length} images loaded successfully (${totalAvailable} available)`);
+	            }
+	        }
 
-        function toggleSelection(imgElement, imageName) {
-            imgElement.classList.toggle('selected');
-            if (selectedImages.has(imageName)) {
-                selectedImages.delete(imageName);
-            } else {
-                selectedImages.add(imageName);
+            function renderZoneLegend(labels) {
+                if (!zoneLegend) return;
+                zoneLegend.innerHTML = '';
+                const order = labels.slice(0, 4);
+                const pos = ['Top-left', 'Top-right', 'Bottom-left', 'Bottom-right'];
+                order.forEach((label, i) => {
+                    const item = document.createElement('div');
+                    item.style.display = 'flex';
+                    item.style.alignItems = 'center';
+                    item.style.gap = '8px';
+
+                    const dot = document.createElement('div');
+                    dot.style.width = '12px';
+                    dot.style.height = '12px';
+                    dot.style.borderRadius = '999px';
+                    dot.style.background = ZONE_COLORS[label] || '#999';
+                    item.appendChild(dot);
+
+                    const txt = document.createElement('div');
+                    txt.textContent = `${pos[i]}: ${label}`;
+                    item.appendChild(txt);
+
+                    zoneLegend.appendChild(item);
+                });
             }
-            console.log(`Image ${imageName} ${selectedImages.has(imageName) ? 'selected' : 'deselected'}`);
-        }
+
+            function quadrantForClick(container, ev) {
+                const rect = container.getBoundingClientRect();
+                const x = ev.clientX - rect.left;
+                const y = ev.clientY - rect.top;
+                const left = x < rect.width / 2;
+                const top = y < rect.height / 2;
+                if (top && left) return 0;
+                if (top && !left) return 1;
+                if (!top && left) return 2;
+                return 3;
+            }
+
+	            async function handleZoneClick(ev, imgContainer, filename) {
+	                const labels = (appConfig && appConfig.labels) ? appConfig.labels : ['good', 'regenerate', 'upscale', 'bad'];
+	                const idx = quadrantForClick(imgContainer, ev);
+	                const label = labels[idx] || labels[0];
+
+                imgContainer.style.outline = `3px solid ${(ZONE_COLORS[label] || '#999')}`;
+	                const result = await fetchWithErrorHandling('/api/label', {
+	                    method: 'POST',
+	                    headers: { 'Content-Type': 'application/json' },
+	                    body: JSON.stringify({ filename, label, source: currentFolder }),
+	                });
+                if (result && result.success) {
+                    imgContainer.remove();
+                    displayedImages = displayedImages.filter(x => x !== filename);
+                    updateCounts();
+                    if (displayedImages.length === 0) {
+                        loadImages(false);
+                    }
+                } else {
+                    imgContainer.style.outline = '';
+                }
+            }
 
         function updateGridColumns(columns) {
             document.documentElement.style.setProperty('--grid-columns', columns);
@@ -428,26 +704,7 @@
             console.log(`Grid columns updated to ${columns}`);
         }
 
-        async function submitSelection() {
-            console.log('Submitting selection...');
-            const result = await fetchWithErrorHandling('/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    displayed: displayedImages,
-                    selected: Array.from(selectedImages)
-                }),
-            });
-            if (result && result.success) {
-                selectedImages.clear();
-                await loadImages();
-                console.log('Selection submitted successfully');
-            }
-        }
-
-        async function resetProcessed() {
+	            async function resetProcessed() {
             console.log('Resetting processed images...');
             const result = await fetchWithErrorHandling('/reset', { method: 'POST' });
             if (result && result.success) {
@@ -456,16 +713,18 @@
             }
         }
 
-        async function updateCounts() {
-            console.log('Updating counts...');
-            const counts = await fetchWithErrorHandling('/counts');
-            if (counts) {
-                inputCountElement.textContent = counts.input;
-                goodCountElement.textContent = counts.good;
-                badCountElement.textContent = counts.bad;
-                console.log('Counts updated successfully');
-            }
-        }
+	        async function updateCounts() {
+	            console.log('Updating counts...');
+	            const counts = await fetchWithErrorHandling('/counts');
+	            if (counts) {
+	                inputCountElement.textContent = counts.input;
+	                goodCountElement.textContent = counts.good || 0;
+                    regenerateCountElement.textContent = counts.regenerate || 0;
+                    upscaleCountElement.textContent = counts.upscale || 0;
+	                badCountElement.textContent = counts.bad || 0;
+	                console.log('Counts updated successfully');
+	            }
+	        }
         
         function startAutoRefresh() {
             if (autoRefreshInterval) {
@@ -492,7 +751,7 @@
             console.log('Auto-refresh stopped');
         }
         
-        // Toggle auto-refresh when checkbox is clicked
+	        // Toggle auto-refresh when checkbox is clicked
         autoRefreshToggle.addEventListener('change', () => {
             if (autoRefreshToggle.checked) {
                 startAutoRefresh();
@@ -501,11 +760,13 @@
             }
         });
 
-        gridColumnsSlider.addEventListener('input', (e) => updateGridColumns(e.target.value));
-        loadImagesBtn.addEventListener('click', () => loadImages(false));
-        saveSettingsBtn.addEventListener('click', saveSettings);
-        submitBtn.addEventListener('click', submitSelection);
-        resetBtn.addEventListener('click', resetProcessed);
+	        gridColumnsSlider.addEventListener('input', (e) => updateGridColumns(e.target.value));
+	        loadImagesBtn.addEventListener('click', () => loadImages(false));
+	        saveSettingsBtn.addEventListener('click', saveSettings);
+	        resetBtn.addEventListener('click', resetProcessed);
+            if (processFolderBtn) {
+                processFolderBtn.addEventListener('click', processCurrentFolder);
+            }
 
         // Stop auto-refresh when the page is hidden and restart when visible again
         document.addEventListener('visibilitychange', () => {
@@ -516,13 +777,74 @@
             }
         });
 
-        loadSettings().then(() => {
-            loadImages();
-            updateCounts();
-            if (autoRefreshToggle.checked) {
-                startAutoRefresh();
+	        loadSettings().then(() => {
+	            loadImages();
+	            updateCounts();
+	            if (autoRefreshToggle.checked) {
+	                startAutoRefresh();
+	            }
+	        });
+
+            function setCurrentFolder(folder) {
+                currentFolder = folder || 'input';
+                if (folderTabs) {
+                    folderTabs.querySelectorAll('.folder-btn').forEach((btn) => {
+                        btn.classList.toggle('active', btn.dataset.folder === currentFolder);
+                    });
+                }
+                updateProcessUI();
             }
-        });
+
+            if (folderTabs) {
+                folderTabs.addEventListener('click', (ev) => {
+                    const btn = ev.target.closest('.folder-btn');
+                    if (!btn) return;
+                    setCurrentFolder(btn.dataset.folder);
+                    loadImages(false);
+                });
+            }
+
+            function folderLabel(folder) {
+                if (folder === 'input') return 'Unlabeled';
+                if (folder === 'regenerate') return 'Regen';
+                return folder;
+            }
+
+            function updateProcessUI() {
+                if (!processFolderBtn || !processFolderStatus) return;
+                const canProcess = (currentFolder === 'good' || currentFolder === 'regenerate' || currentFolder === 'upscale');
+                processFolderBtn.style.display = canProcess ? 'block' : 'none';
+                processFolderStatus.style.display = canProcess ? 'block' : 'none';
+                processFolderStatus.textContent = canProcess ? `Process ${folderLabel(currentFolder)} folder` : '';
+            }
+
+            async function processCurrentFolder() {
+                if (!processFolderBtn) return;
+                const result = await fetchWithErrorHandling('/api/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folder: currentFolder }),
+                });
+                if (result && result.success) {
+                    alert(`Queued processing for '${folderLabel(currentFolder)}' (${result.total_available} images).`);
+                }
+            }
+
+            async function moveBackToUnlabeled(imgContainer, filename) {
+                const result = await fetchWithErrorHandling('/api/label', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename, label: 'input', source: currentFolder }),
+                });
+                if (result && result.success) {
+                    imgContainer.remove();
+                    displayedImages = displayedImages.filter(x => x !== filename);
+                    updateCounts();
+                    if (displayedImages.length === 0) {
+                        loadImages(false);
+                    }
+                }
+            }
     </script>
 </body>
 </html>

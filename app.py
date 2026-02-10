@@ -1,115 +1,82 @@
 import os
-import json
-import shutil
-from flask import Flask, request, jsonify, send_from_directory, render_template_string
+import socket
 import argparse
 
-app = Flask(__name__)
-
-SETTINGS_FILE = 'settings.json'
-
-def load_settings():
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, 'r') as f:
-            return json.load(f)
-    return {
-        'input_dir': 'input',
-        'good_dir': 'good',
-        'bad_dir': 'bad',
-        'image_count': 20,
-        'image_size': 200
-    }
-
-def save_settings(settings):
-    with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f)
-
-SETTINGS = load_settings()
-PROCESSED_IMAGES = set()
-
-@app.route('/')
-def index():
-    with open('index.html', 'r', encoding='utf-8') as f:
-        return render_template_string(f.read())
+from imagesorter.web.app import create_app
 
 
-@app.route('/settings', methods=['GET', 'POST'])
-def handle_settings():
-    global SETTINGS
-    if request.method == 'POST':
-        SETTINGS.update(request.json)
-        save_settings(SETTINGS)
-        return jsonify({"success": True})
-    else:
-        return jsonify(SETTINGS)
-
-
-@app.route('/images', methods=['GET'])
-def get_images():
-    count = int(request.args.get('count', SETTINGS['image_count']))
-    # Always get the current list of images from the directory
+def _env_int(name: str):
+    v = os.getenv(name)
+    if not v:
+        return None
     try:
-        all_images = set(os.listdir(SETTINGS['input_dir']))
-        unprocessed_images = list(all_images - PROCESSED_IMAGES)
-        # Sort the images to ensure consistent ordering
-        unprocessed_images.sort()
-        batch = unprocessed_images[:count]
-        return jsonify({
-            'images': batch,
-            'total_available': len(unprocessed_images)
-        })
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'images': [],
-            'total_available': 0
-        }), 500
+        return int(v)
+    except ValueError:
+        return None
 
 
-@app.route('/submit', methods=['POST'])
-def submit_selection():
-    global PROCESSED_IMAGES
-    displayed_images = request.json['displayed']
-    selected = request.json['selected']
+def _can_bind(host: str, port: int) -> bool:
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except OSError:
+        infos = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", (host, port))]
 
-    for image in displayed_images:
-        source = os.path.join(SETTINGS['input_dir'], image)
-        if image in selected:
-            destination = os.path.join(SETTINGS['good_dir'], image)
-        else:
-            destination = os.path.join(SETTINGS['bad_dir'], image)
-        shutil.move(source, destination)
-        PROCESSED_IMAGES.add(image)
-
-    return jsonify({"success": True})
-
-
-@app.route('/image/<path:filename>')
-def serve_image(filename):
-    return send_from_directory(SETTINGS['input_dir'], filename)
-
-
-@app.route('/reset', methods=['POST'])
-def reset_processed():
-    global PROCESSED_IMAGES
-    PROCESSED_IMAGES = set()
-    return jsonify({"success": True})
+    for family, socktype, proto, _canonname, sockaddr in infos:
+        s = None
+        try:
+            s = socket.socket(family, socktype, proto)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(sockaddr)
+            return True
+        except OSError:
+            continue
+        finally:
+            if s is not None:
+                try:
+                    s.close()
+                except OSError:
+                    pass
+    return False
 
 
-@app.route('/counts', methods=['GET'])
-def get_counts():
-    return jsonify({
-        'input': len(os.listdir(SETTINGS['input_dir'])),
-        'good': len(os.listdir(SETTINGS['good_dir'])),
-        'bad': len(os.listdir(SETTINGS['bad_dir']))
-    })
+def _pick_available_port(host: str, preferred_port: int, attempts: int = 50) -> int:
+    if preferred_port < 0:
+        raise ValueError("port must be >= 0")
+    if preferred_port == 0:
+        return 0
+
+    for port in range(preferred_port, preferred_port + max(1, attempts)):
+        if _can_bind(host, port):
+            return port
+    return 0
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run the Image Sorter server")
-    parser.add_argument('--host', default='0.0.0.0', help="The host to bind the server to")
-    parser.add_argument('--port', type=int, default=5000, help="The port to bind the server to")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run the ImageSorter server (dev)")
+    default_host = os.getenv("HOST", "0.0.0.0")
+    default_port = _env_int("PORT") or 5050
+    parser.add_argument("--host", default=default_host)
+    parser.add_argument("--port", type=int, default=default_port)
     args = parser.parse_args()
 
-    print(f"Starting server on {args.host}:{args.port}")
-    app.run(host=args.host, port=args.port, debug=True)
+    debug = os.getenv("DEBUG", "1") not in ("0", "false", "False")
+    is_reloader_child = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
+
+    requested_port = args.port
+    chosen_port_env = _env_int("IMAGESORTER_CHOSEN_PORT")
+    if debug and is_reloader_child and chosen_port_env is not None:
+        chosen_port = chosen_port_env
+    else:
+        chosen_port = _pick_available_port(args.host, requested_port)
+        os.environ["IMAGESORTER_CHOSEN_PORT"] = str(chosen_port)
+
+    if (not debug) or is_reloader_child:
+        if chosen_port != requested_port and chosen_port != 0:
+            print(f"Port {requested_port} is unavailable; using {chosen_port} instead.")
+        elif chosen_port == 0 and requested_port != 0:
+            print(f"Port {requested_port} is unavailable; using an ephemeral free port instead.")
+        print(f"Starting server on {args.host}:{chosen_port}")
+
+    app = create_app()
+    app.run(host=args.host, port=chosen_port, debug=debug)
+

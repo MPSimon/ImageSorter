@@ -16,7 +16,9 @@ if not exist venv (
 )
 
 echo Launching ImageSorter...
-python app.py
+REM Default away from 5000 (commonly occupied on macOS); can override via: set PORT=8000
+if "%PORT%"=="" set PORT=5050
+python -u app.py
 
 REM Keep the window open if there's an error
 if %ERRORLEVEL% neq 0 (

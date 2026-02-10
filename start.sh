@@ -16,7 +16,12 @@ else
 fi
 
 echo "Launching ImageSorter..."
-python app.py
+
+# Default away from 5000 (commonly used by macOS AirPlay Receiver), but allow override:
+#   PORT=8000 ./start.sh
+: "${PORT:=5050}"
+export PORT
+python -u app.py
 
 # Check if the application exited with an error
 if [ $? -ne 0 ]; then
