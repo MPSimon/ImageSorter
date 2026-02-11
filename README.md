@@ -18,7 +18,7 @@ Each click immediately moves the file into the corresponding folder.
    - `IMAGESORTER_SECRET_KEY` (required for login sessions; set a long random string)
    - `IMAGESORTER_PASSWORD` (required to protect the UI; single shared password)
    - `IMAGESORTER_UPLOAD_TOKEN` (optional; enables token-based uploads to `POST /api/upload`)
-   - `IMAGESORTER_MAX_UPLOAD_MB` (optional; defaults to `12`, suitable for ~10 MB images via multipart upload)
+   - `IMAGESORTER_MAX_UPLOAD_MB` (optional; defaults to `20`)
 
    Copy `.env.example` to `.env` and fill it in.
 
@@ -43,8 +43,6 @@ Each click immediately moves the file into the corresponding folder.
 - For repeatable multi-project deploys, use the env template:
   ```bash
   IMAGESORTER_SERVER_NAME=images.bitreq.nl \
-  IMAGESORTER_UPSTREAM=127.0.0.1:5050 \
-  IMAGESORTER_CLIENT_MAX_BODY_SIZE=12m \
   envsubst < deploy/nginx/imagesorter.conf.template | sudo tee /etc/nginx/sites-available/imagesorter
   ```
   Then symlink it into `sites-enabled` and run `sudo nginx -t && sudo systemctl reload nginx`.
@@ -63,7 +61,7 @@ Each click immediately moves the file into the corresponding folder.
   - If `IMAGESORTER_PASSWORD` is not set: allowed for local/dev; optionally enforce with token.
   - Header (optional): `X-Upload-Token: <token>`
   - Multipart: `file=@image.jpg` (uploads into Unlabeled)
-  - Size limit: controlled by `IMAGESORTER_MAX_UPLOAD_MB` (default `12`)
+  - Size limit: controlled by `IMAGESORTER_MAX_UPLOAD_MB` (default `20`)
 
 ## Usage
 1. Click "Reload Images" to refresh the current folder view

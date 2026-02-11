@@ -33,6 +33,13 @@ storage/**
 !storage/upscale/.gitkeep
 !storage/bad/.gitkeep
 
+# Legacy root-level runtime folders (replaced by ./storage/*)
+/input/
+/good/
+/regenerate/
+/upscale/
+/bad/
+
 # OS specific files
 .DS_Store
 Thumbs.db

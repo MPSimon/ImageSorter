@@ -34,7 +34,7 @@ def _secret_key() -> str:
 
 
 def _max_upload_mb() -> int:
-    raw = os.getenv("IMAGESORTER_MAX_UPLOAD_MB", "12")
+    raw = os.getenv("IMAGESORTER_MAX_UPLOAD_MB", "20")
     try:
         mb = int(raw)
     except ValueError:
