@@ -55,7 +55,7 @@ Each click immediately moves the file into the corresponding folder.
 
 ## Usage
 1. Click "Reload Images" to refresh the current folder view
-2. Click "Save Settings" to persist `grid_columns` and `image_count`
+2. `grid_columns` and `image_count` auto-save when changed
 3. Click a quadrant on an image to label it (the file is moved immediately)
 4. Use the top tabs to browse labeled folders and re-label images
 5. In labeled folders, click "Unlabel" to send an image back to Unlabeled

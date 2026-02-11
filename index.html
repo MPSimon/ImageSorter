@@ -333,7 +333,6 @@
                         <input type="number" id="image-count-input" min="1" max="100" value="20">
                     </div>
                     <button id="load-images-btn">Reload Images</button>
-                    <button id="save-settings-btn">Save Settings</button>
                 </div>
 	                <div class="directory-counts">
 		                    <div class="count-item">
@@ -393,7 +392,6 @@
 	            const folderTabs = document.getElementById('folder-tabs');
                 const processPanel = document.getElementById('process-panel');
 		        const loadImagesBtn = document.getElementById('load-images-btn');
-		        const saveSettingsBtn = document.getElementById('save-settings-btn');
 		        const gridColumnsSlider = document.getElementById('grid-columns');
 		        const columnValue = document.getElementById('column-value');
 		        const imageCountInput = document.getElementById('image-count-input');
@@ -494,7 +492,7 @@
 	            }
 	        }
 
-	        async function saveSettings() {
+	        async function saveSettings({ showConfirmation = false } = {}) {
 	            console.log('Saving settings...');
 	            const settings = {
 	                image_count: parseInt(imageCountInput.value),
@@ -505,13 +503,15 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(settings),
-            });
-            if (result && result.success) {
-                alert('Settings saved successfully!');
-                console.log('Settings saved successfully');
-            }
-        }
+	                body: JSON.stringify(settings),
+	            });
+	            if (result && result.success) {
+	                console.log('Settings saved successfully');
+                    if (showConfirmation) {
+                        alert('Settings saved successfully!');
+                    }
+	            }
+	        }
 
 	        async function loadImages(isAutoRefresh = false) {
             console.log(isAutoRefresh ? 'Auto-refreshing images...' : 'Loading images...');
@@ -693,9 +693,24 @@
             console.log('Auto-refresh stopped');
         }
 
-	        gridColumnsSlider.addEventListener('input', (e) => updateGridColumns(e.target.value));
+            let saveSettingsTimeout = null;
+            function scheduleSettingsSave() {
+                if (saveSettingsTimeout) {
+                    clearTimeout(saveSettingsTimeout);
+                }
+                saveSettingsTimeout = setTimeout(() => {
+                    saveSettings();
+                }, 300);
+            }
+
+	        gridColumnsSlider.addEventListener('input', (e) => {
+                updateGridColumns(e.target.value);
+                scheduleSettingsSave();
+            });
+            imageCountInput.addEventListener('change', () => {
+                scheduleSettingsSave();
+            });
 	        loadImagesBtn.addEventListener('click', () => loadImages(false));
-	        saveSettingsBtn.addEventListener('click', saveSettings);
             if (processFolderBtn) {
                 processFolderBtn.addEventListener('click', processCurrentFolder);
             }
