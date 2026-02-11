@@ -321,33 +321,13 @@
 <body>
     <div class="app-container">
         <aside class="sidebar">
-            <div class="sidebar-content">
-                <h2>Image Sorter Controls</h2>
-                <div class="controls">
-                    <div class="control-group">
-                        <label for="input-dir">Input Directory:</label>
-                        <input type="text" id="input-dir">
-                    </div>
+	            <div class="sidebar-content">
+	                <h2>Image Sorter Controls</h2>
+	                <div class="controls">
 	                    <div class="control-group">
-	                        <label for="good-dir">Good Directory:</label>
-	                        <input type="text" id="good-dir">
+	                        <label for="grid-columns">Grid Columns: <span id="column-value">5</span></label>
+	                        <input type="range" id="grid-columns" min="1" max="10" value="5">
 	                    </div>
-	                    <div class="control-group">
-	                        <label for="regenerate-dir">Regenerate Directory:</label>
-	                        <input type="text" id="regenerate-dir">
-	                    </div>
-	                    <div class="control-group">
-	                        <label for="upscale-dir">Upscale Directory:</label>
-	                        <input type="text" id="upscale-dir">
-	                    </div>
-	                    <div class="control-group">
-	                        <label for="bad-dir">Bad Directory:</label>
-	                        <input type="text" id="bad-dir">
-	                    </div>
-                    <div class="control-group">
-                        <label for="grid-columns">Grid Columns: <span id="column-value">5</span></label>
-                        <input type="range" id="grid-columns" min="1" max="10" value="5">
-                    </div>
                     <div class="control-group">
                         <label for="image-count-input">Images to Display:</label>
                         <input type="number" id="image-count-input" min="1" max="100" value="20">
@@ -385,18 +365,10 @@
 	                    </div>
 	                </div>
                 
-	                <div style="margin-top: 20px; padding: 12px; border: 1px solid #eee; border-radius: 8px;">
-	                    <div style="font-weight: 700; margin-bottom: 8px;">Click Zones</div>
-	                    <div id="zone-legend" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.95em;"></div>
-	                    <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
-	                        Click a quadrant to label and move the image immediately.
-	                    </div>
-	                </div>
-
-                    <div style="margin-top: 12px; padding: 12px; border: 1px solid #eee; border-radius: 8px;">
-                        <div style="font-weight: 700; margin-bottom: 8px;">Processing</div>
-                        <div id="process-folder-status" style="font-size: 0.9em; opacity: 0.85; margin-bottom: 10px; display: none;"></div>
-                        <button id="process-folder-btn" style="width: 100%; display: none;">Process Images In This Folder</button>
+	                    <div id="process-panel" style="margin-top: 12px; padding: 12px; border: 1px solid #eee; border-radius: 8px; display: none;">
+	                        <div style="font-weight: 700; margin-bottom: 8px;">Processing</div>
+	                        <div id="process-folder-status" style="font-size: 0.9em; opacity: 0.85; margin-bottom: 10px; display: none;"></div>
+	                        <button id="process-folder-btn" style="width: 100%; display: none;">Process Images In This Folder</button>
                         <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.75;">
                             For future automation: this will trigger actions for images currently in the selected folder.
                         </div>
@@ -420,27 +392,22 @@
 	        </main>
     </div>
 
-    <script>
-	        const sidebar = document.querySelector('.sidebar');
-	        const mainContent = document.querySelector('.main-content');
-	        const toggleSidebarBtn = document.querySelector('.toggle-sidebar');
-	        const imageContainer = document.getElementById('image-container');
-            const folderTabs = document.getElementById('folder-tabs');
-	        const zoneLegend = document.getElementById('zone-legend');
-	        const loadImagesBtn = document.getElementById('load-images-btn');
-	        const saveSettingsBtn = document.getElementById('save-settings-btn');
-	        const resetBtn = document.getElementById('reset-btn');
-	        const gridColumnsSlider = document.getElementById('grid-columns');
-	        const columnValue = document.getElementById('column-value');
-	        const imageCountInput = document.getElementById('image-count-input');
-	        const inputDirInput = document.getElementById('input-dir');
-	        const goodDirInput = document.getElementById('good-dir');
-	        const regenerateDirInput = document.getElementById('regenerate-dir');
-	        const upscaleDirInput = document.getElementById('upscale-dir');
-	        const badDirInput = document.getElementById('bad-dir');
-	        const inputCountElement = document.getElementById('input-count');
-	        const goodCountElement = document.getElementById('good-count');
-	        const regenerateCountElement = document.getElementById('regenerate-count');
+	    <script>
+		        const sidebar = document.querySelector('.sidebar');
+		        const mainContent = document.querySelector('.main-content');
+		        const toggleSidebarBtn = document.querySelector('.toggle-sidebar');
+		        const imageContainer = document.getElementById('image-container');
+	            const folderTabs = document.getElementById('folder-tabs');
+                const processPanel = document.getElementById('process-panel');
+		        const loadImagesBtn = document.getElementById('load-images-btn');
+		        const saveSettingsBtn = document.getElementById('save-settings-btn');
+		        const resetBtn = document.getElementById('reset-btn');
+		        const gridColumnsSlider = document.getElementById('grid-columns');
+		        const columnValue = document.getElementById('column-value');
+		        const imageCountInput = document.getElementById('image-count-input');
+		        const inputCountElement = document.getElementById('input-count');
+		        const goodCountElement = document.getElementById('good-count');
+		        const regenerateCountElement = document.getElementById('regenerate-count');
 	        const upscaleCountElement = document.getElementById('upscale-count');
 	        const badCountElement = document.getElementById('bad-count');
 	        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
@@ -530,16 +497,9 @@
 	            const settings = await fetchWithErrorHandling('/api/config');
 	            if (settings) {
                     appConfig = settings;
-	                inputDirInput.value = settings.input_dir || '';
-	                const labelDirs = settings.label_dirs || {};
-	                goodDirInput.value = labelDirs.good || settings.good_dir || '';
-                    regenerateDirInput.value = labelDirs.regenerate || '';
-                    upscaleDirInput.value = labelDirs.upscale || '';
-	                badDirInput.value = labelDirs.bad || settings.bad_dir || '';
 	                imageCountInput.value = settings.image_count || 20;
 	                gridColumnsSlider.value = settings.grid_columns || 5;
 	                updateGridColumns(gridColumnsSlider.value);
-                    renderZoneLegend(settings.labels || ['good', 'regenerate', 'upscale', 'bad']);
 	                console.log('Settings loaded successfully');
 	            }
 	        }
@@ -547,14 +507,6 @@
 	        async function saveSettings() {
 	            console.log('Saving settings...');
 	            const settings = {
-	                input_dir: inputDirInput.value,
-                    label_dirs: {
-                        ...(appConfig && appConfig.label_dirs ? appConfig.label_dirs : {}),
-                        good: goodDirInput.value,
-                        regenerate: regenerateDirInput.value,
-                        upscale: upscaleDirInput.value,
-                        bad: badDirInput.value,
-                    },
 	                image_count: parseInt(imageCountInput.value),
 	                grid_columns: parseInt(gridColumnsSlider.value)
 	            };
@@ -677,32 +629,6 @@
 	                console.log(`${images.length} images loaded successfully (${totalAvailable} available)`);
 	            }
 	        }
-
-            function renderZoneLegend(labels) {
-                if (!zoneLegend) return;
-                zoneLegend.innerHTML = '';
-                const order = labels.slice(0, 4);
-                const pos = ['Top-left', 'Top-right', 'Bottom-left', 'Bottom-right'];
-                order.forEach((label, i) => {
-                    const item = document.createElement('div');
-                    item.style.display = 'flex';
-                    item.style.alignItems = 'center';
-                    item.style.gap = '8px';
-
-                    const dot = document.createElement('div');
-                    dot.style.width = '12px';
-                    dot.style.height = '12px';
-                    dot.style.borderRadius = '999px';
-                    dot.style.background = ZONE_COLORS[label] || '#999';
-                    item.appendChild(dot);
-
-                    const txt = document.createElement('div');
-                    txt.textContent = `${pos[i]}: ${label}`;
-                    item.appendChild(txt);
-
-                    zoneLegend.appendChild(item);
-                });
-            }
 
             function quadrantForClick(container, ev) {
                 const rect = container.getBoundingClientRect();
@@ -873,8 +799,9 @@
             }
 
             function updateProcessUI() {
-                if (!processFolderBtn || !processFolderStatus) return;
+                if (!processPanel || !processFolderBtn || !processFolderStatus) return;
                 const canProcess = (currentFolder === 'good' || currentFolder === 'regenerate' || currentFolder === 'upscale');
+                processPanel.style.display = canProcess ? 'block' : 'none';
                 processFolderBtn.style.display = canProcess ? 'block' : 'none';
                 processFolderStatus.style.display = canProcess ? 'block' : 'none';
                 processFolderStatus.textContent = canProcess ? `Process ${folderLabel(currentFolder)} folder` : '';
