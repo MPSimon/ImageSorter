@@ -27,6 +27,8 @@ Each click immediately moves the file into the corresponding folder.
    ```
 
 3. The container reads `settings.json` (mounted as `/app/settings.json`) and uses `/data/...` paths inside the container.
+   - Default host folders are project-local: `./storage/input`, `./storage/good`, `./storage/regenerate`, `./storage/upscale`, `./storage/bad`.
+   - You can override host paths with `IMAGESORTER_*_DIR` environment variables.
 
 4. Open:
    - `http://localhost:5050/`
@@ -66,6 +68,7 @@ Each click immediately moves the file into the corresponding folder.
 
 - `settings.json` is the single source of truth for runtime settings.
 - Host folders are mounted to `/data/...` via `docker-compose.yml`.
+- Default host-side storage is `./storage/...` (inside the project directory), suitable for local and VPS Docker deployments.
 - Sidebar directory path fields and click-zone legend were intentionally removed to keep the UI focused on rating.
 
 ## Linting

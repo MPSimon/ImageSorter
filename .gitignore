@@ -19,6 +19,20 @@ build/
 # Logs
 *.log
 
+# Runtime image storage (keep empty folder structure in git)
+storage/**
+!storage/
+!storage/input/
+!storage/good/
+!storage/regenerate/
+!storage/upscale/
+!storage/bad/
+!storage/input/.gitkeep
+!storage/good/.gitkeep
+!storage/regenerate/.gitkeep
+!storage/upscale/.gitkeep
+!storage/bad/.gitkeep
+
 # OS specific files
 .DS_Store
 Thumbs.db
