@@ -12,6 +12,7 @@ from flask import (
     send_from_directory,
     session,
 )
+from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from imagesorter.application.services import ImageSorterService
@@ -32,6 +33,15 @@ def _secret_key() -> str:
     return "dev-secret-change-me"
 
 
+def _max_upload_mb() -> int:
+    raw = os.getenv("IMAGESORTER_MAX_UPLOAD_MB", "12")
+    try:
+        mb = int(raw)
+    except ValueError:
+        mb = 12
+    return max(1, mb)
+
+
 def _build_service(store: SettingsStore) -> ImageSorterService:
     settings = store.load()
     label_dirs: Dict[str, Path] = {k: Path(v) for k, v in settings.label_dirs.items()}
@@ -42,6 +52,7 @@ def _build_service(store: SettingsStore) -> ImageSorterService:
 def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(Path(__file__).parent / "templates"))
     app.secret_key = _secret_key()
+    app.config["MAX_CONTENT_LENGTH"] = _max_upload_mb() * 1024 * 1024
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
     store = SettingsStore(_settings_path())
@@ -175,5 +186,10 @@ def create_app() -> Flask:
         data = f.read()
         out = svc().upload(filename=name, data=data)
         return jsonify({"success": True, "filename": out})
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def request_too_large(_error):
+        max_mb = _max_upload_mb()
+        return jsonify({"error": f"file too large (max {max_mb} MB)"}), 413
 
     return app

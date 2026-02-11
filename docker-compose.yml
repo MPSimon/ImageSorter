@@ -11,6 +11,7 @@ services:
       - IMAGESORTER_SECRET_KEY=${IMAGESORTER_SECRET_KEY}
       - IMAGESORTER_PASSWORD=${IMAGESORTER_PASSWORD}
       - IMAGESORTER_UPLOAD_TOKEN=${IMAGESORTER_UPLOAD_TOKEN}
+      - IMAGESORTER_MAX_UPLOAD_MB=${IMAGESORTER_MAX_UPLOAD_MB:-12}
     volumes:
       - ./settings.json:/app/settings.json
       - ${IMAGESORTER_INPUT_DIR:-./storage/input}:/data/input
