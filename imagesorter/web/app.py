@@ -61,6 +61,8 @@ def create_app() -> Flask:
 
     @app.get("/login")
     def login():
+        if session.get("authed") is True:
+            return redirect("/")
         return render_template("login.html")
 
     @app.post("/login")
