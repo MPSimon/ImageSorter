@@ -3,12 +3,12 @@
   "grid_columns": 7,
   "image_count": 100,
   "image_size": 357,
-  "input_dir": "/Users/max/www/NanoBananaReplace/output",
+  "input_dir": "/data/input",
   "label_dirs": {
-    "bad": "/Users/max/www/NanoBananaReplace/output/bad",
-    "good": "/Users/max/www/NanoBananaReplace/output/good",
-    "regenerate": "/Users/max/www/NanoBananaReplace/output/regenerate",
-    "upscale": "/Users/max/www/NanoBananaReplace/output/upscale"
+    "bad": "/data/bad",
+    "good": "/data/good",
+    "regenerate": "/data/regenerate",
+    "upscale": "/data/upscale"
   },
   "labels": [
     "good",

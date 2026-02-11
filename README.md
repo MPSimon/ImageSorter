@@ -12,28 +12,7 @@ Each click immediately moves the file into the corresponding folder.
 
 ## Getting Started
 
-### Windows
-1. Double-click the `start.bat` file
-2. The script will:
-   - Check if a virtual environment exists
-   - Create one if needed and install requirements
-   - Activate the environment and launch the application
-
-### macOS and Linux
-1. Make the script executable (first time only):
-   ```
-   chmod +x start.sh
-   ```
-2. Run the script:
-   ```
-   ./start.sh
-   ```
-3. The script will:
-   - Check if a virtual environment exists
-   - Create one if needed and install requirements
-   - Activate the environment and launch the application
-
-## Docker (Recommended for VPS)
+### Docker (Only runtime)
 
 1. Set environment variables (example):
    - `IMAGESORTER_SECRET_KEY` (required for login sessions; set a long random string)
@@ -47,7 +26,7 @@ Each click immediately moves the file into the corresponding folder.
    docker compose up -d --build
    ```
 
-3. The container reads `settings.docker.json` (mounted as `/app/settings.json`) and uses `/data/...` paths inside the container.
+3. The container reads `settings.json` (mounted as `/app/settings.json`) and uses `/data/...` paths inside the container.
 
 4. Open:
    - `http://localhost:5050/`
@@ -86,5 +65,5 @@ Each click immediately moves the file into the corresponding folder.
 
 ## Development Notes
 
-- `settings.json` is used for local development paths.
-- `settings.docker.json` is the default config for Docker (uses `/data/...` mount points).
+- `settings.json` is the single source of truth for runtime settings.
+- Host folders are mounted to `/data/...` via `docker-compose.yml`.
