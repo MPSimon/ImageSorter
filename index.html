@@ -778,22 +778,44 @@
 
             function updateProcessUI() {
                 if (!processPanel || !processFolderBtn || !processFolderStatus) return;
-                const canProcess = (currentFolder === 'good' || currentFolder === 'regenerate' || currentFolder === 'upscale');
+                const canProcess = (currentFolder === 'good' || currentFolder === 'regenerate' || currentFolder === 'upscale' || currentFolder === 'bad');
                 processPanel.style.display = canProcess ? 'block' : 'none';
                 processFolderBtn.style.display = canProcess ? 'block' : 'none';
                 processFolderStatus.style.display = canProcess ? 'block' : 'none';
-                processFolderStatus.textContent = canProcess ? `Process ${folderLabel(currentFolder)} folder` : '';
+
+                if (canProcess) {
+                    const isDelete = currentFolder === 'bad';
+                    const action = isDelete ? 'Delete' : 'Process';
+                    processFolderBtn.textContent = `${action} Images In This Folder`;
+                    processFolderStatus.textContent = `${action} ${folderLabel(currentFolder)} folder`;
+                }
             }
 
             async function processCurrentFolder() {
                 if (!processFolderBtn) return;
+
+                // Show confirmation dialog for delete operation
+                if (currentFolder === 'bad') {
+                    const imageCount = document.getElementById('bad-count')?.textContent || '0';
+                    const confirmMessage = `Delete all ${imageCount} images from Bad folder? This will move them to archive.`;
+                    if (!confirm(confirmMessage)) {
+                        return;
+                    }
+                }
+
                 const result = await fetchWithErrorHandling('/api/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ folder: currentFolder }),
                 });
+
                 if (result && result.success) {
-                    alert(`Queued processing for '${folderLabel(currentFolder)}' (${result.total_available} images).`);
+                    if (currentFolder === 'bad') {
+                        alert(`Deleted ${result.deleted || 0} images from Bad folder.`);
+                        loadImages(false); // Refresh the image grid
+                    } else {
+                        alert(`Queued processing for '${folderLabel(currentFolder)}' (${result.total_available} images).`);
+                    }
                 }
             }
 
