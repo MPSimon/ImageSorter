@@ -39,7 +39,15 @@ Each click immediately moves the file into the corresponding folder.
 
 - Docker is configured to bind only to `127.0.0.1:5050` on the server.
 - Use nginx to proxy a domain to the container.
-- Template: `deploy/nginx/imagesorter.conf`
+- For this project, default server name is `images.bitreq.nl`: `deploy/nginx/imagesorter.conf`
+- For repeatable multi-project deploys, use the env template:
+  ```bash
+  IMAGESORTER_SERVER_NAME=images.bitreq.nl \
+  IMAGESORTER_UPSTREAM=127.0.0.1:5050 \
+  IMAGESORTER_CLIENT_MAX_BODY_SIZE=12m \
+  envsubst < deploy/nginx/imagesorter.conf.template | sudo tee /etc/nginx/sites-available/imagesorter
+  ```
+  Then symlink it into `sites-enabled` and run `sudo nginx -t && sudo systemctl reload nginx`.
 
 ## API
 

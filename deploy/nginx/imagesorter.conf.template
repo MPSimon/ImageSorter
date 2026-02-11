@@ -1,14 +1,10 @@
 server {
     listen 80;
-    # Keep this explicit per project/domain on multi-app servers.
-    server_name images.bitreq.nl;
-    # Matches app-level default (12 MB) to support ~10 MB image uploads.
-    client_max_body_size 12m;
-
-    # If using certbot, this block can be extended for ACME challenges.
+    server_name ${IMAGESORTER_SERVER_NAME};
+    client_max_body_size ${IMAGESORTER_CLIENT_MAX_BODY_SIZE};
 
     location / {
-        proxy_pass http://127.0.0.1:5050;
+        proxy_pass http://${IMAGESORTER_UPSTREAM};
         proxy_http_version 1.1;
 
         proxy_set_header Host $host;
