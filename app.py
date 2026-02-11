@@ -1,6 +1,6 @@
+import argparse
 import os
 import socket
-import argparse
 
 from imagesorter.web.app import create_app
 

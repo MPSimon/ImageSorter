@@ -2,7 +2,16 @@ import os
 from pathlib import Path
 from typing import Dict
 
-from flask import Flask, jsonify, redirect, render_template, render_template_string, request, send_from_directory, session
+from flask import (
+    Flask,
+    jsonify,
+    redirect,
+    render_template,
+    render_template_string,
+    request,
+    send_from_directory,
+    session,
+)
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from imagesorter.application.services import AppState, ImageSorterService

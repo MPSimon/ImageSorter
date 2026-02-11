@@ -54,16 +54,27 @@ Each click immediately moves the file into the corresponding folder.
   - Multipart: `file=@image.jpg` (uploads into Unlabeled)
 
 ## Usage
-1. Set your input and output directories in the sidebar (or edit `settings.json`)
-2. Click "Save Settings" to persist your configuration
-3. Click "Load Images" to display images from your input directory
-4. Click a quadrant on an image to label it (the file is moved immediately)
-5. Use the top tabs to browse labeled folders and re-label images
-6. In labeled folders, click "Unlabel" to send an image back to Unlabeled
-7. In Good/Regen/Upscale, click "Process Images In This Folder" to trigger future automation
-8. Drag and drop images onto the grid while on Unlabeled to upload them
+1. Click "Reload Images" to refresh the current folder view
+2. Click "Save Settings" to persist `grid_columns` and `image_count`
+3. Click a quadrant on an image to label it (the file is moved immediately)
+4. Use the top tabs to browse labeled folders and re-label images
+5. In labeled folders, click "Unlabel" to send an image back to Unlabeled
+6. In Good/Regen/Upscale, click "Process Images In This Folder" to trigger future automation
+7. Drag and drop images onto the grid while on Unlabeled to upload them
 
 ## Development Notes
 
 - `settings.json` is the single source of truth for runtime settings.
 - Host folders are mounted to `/data/...` via `docker-compose.yml`.
+- Sidebar directory path fields and click-zone legend were intentionally removed to keep the UI focused on rating.
+
+## Linting
+
+1. Install dev tools:
+   ```
+   pip install -r requirements-dev.txt
+   ```
+2. Run:
+   ```
+   ruff check .
+   ```
