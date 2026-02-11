@@ -43,3 +43,7 @@ storage/**
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# Beads task tracking (ephemeral)
+.beads/
+.mcp.json
