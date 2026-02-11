@@ -26,5 +26,9 @@ class ImageSorterService:
     def upload(self, filename: str, data: bytes) -> str:
         return self._store.save_upload(original_filename=filename, data=data)
 
+    def archive_images(self, folder: str) -> int:
+        """Archive all images from the specified folder. Returns count of archived images."""
+        return self._store.archive_images(folder=folder)
+
     def public_config(self) -> Dict:
         return self._settings.to_public_dict()

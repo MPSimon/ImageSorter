@@ -13,6 +13,7 @@ class Settings:
     label_dirs: Dict[str, str]
     labels: List[str]
     click_layout: str
+    archive_dir: str
 
     @staticmethod
     def from_dict(d: Mapping[str, Any]) -> "Settings":
@@ -35,6 +36,7 @@ class Settings:
         labels = [str(x) for x in labels]
 
         click_layout = str(d.get("click_layout") or "quadrants")
+        archive_dir = str(d.get("archive_dir") or "archive")
 
         return Settings(
             input_dir=input_dir,
@@ -44,6 +46,7 @@ class Settings:
             label_dirs=label_dirs,
             labels=labels,
             click_layout=click_layout,
+            archive_dir=archive_dir,
         )
 
     def to_public_dict(self) -> Dict[str, Any]:
@@ -55,5 +58,6 @@ class Settings:
             "label_dirs": dict(self.label_dirs),
             "labels": list(self.labels),
             "click_layout": self.click_layout,
+            "archive_dir": self.archive_dir,
         }
 

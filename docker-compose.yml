@@ -19,6 +19,7 @@ services:
       - ${IMAGESORTER_REGENERATE_DIR:-./storage/regenerate}:/data/regenerate
       - ${IMAGESORTER_UPSCALE_DIR:-./storage/upscale}:/data/upscale
       - ${IMAGESORTER_BAD_DIR:-./storage/bad}:/data/bad
+      - ${IMAGESORTER_ARCHIVE_DIR:-./storage/archive}:/data/archive
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/login').read()"]
       interval: 10s

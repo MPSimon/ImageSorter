@@ -45,7 +45,8 @@ def _max_upload_mb() -> int:
 def _build_service(store: SettingsStore) -> ImageSorterService:
     settings = store.load()
     label_dirs: Dict[str, Path] = {k: Path(v) for k, v in settings.label_dirs.items()}
-    image_store = ImageStore(input_dir=Path(settings.input_dir), label_dirs=label_dirs)
+    archive_dir = Path(settings.archive_dir) if settings.archive_dir else None
+    image_store = ImageStore(input_dir=Path(settings.input_dir), label_dirs=label_dirs, archive_dir=archive_dir)
     return ImageSorterService(store=image_store, settings=settings)
 
 
@@ -152,8 +153,16 @@ def create_app() -> Flask:
     def api_process():
         data = request.get_json(force=True, silent=True) or {}
         folder = str(data.get("folder") or "")
-        if folder not in ("good", "regenerate", "upscale"):
-            return jsonify({"error": "folder must be one of: good, regenerate, upscale"}), 400
+        if folder not in ("good", "regenerate", "upscale", "bad"):
+            return jsonify({"error": "folder must be one of: good, regenerate, upscale, bad"}), 400
+
+        if folder == "bad":
+            # Archive (soft delete) all images in the bad folder
+            try:
+                deleted = svc().archive_images(folder=folder)
+                return jsonify({"success": True, "deleted": deleted})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
 
         # Placeholder for future background processing integration.
         _images, total = svc().list_images(count=0, folder=folder)

@@ -4,6 +4,7 @@
   "image_count": 100,
   "image_size": 357,
   "input_dir": "/data/input",
+  "archive_dir": "/data/archive",
   "label_dirs": {
     "bad": "/data/bad",
     "good": "/data/good",

@@ -50,9 +50,10 @@ class Counts:
 
 
 class ImageStore:
-    def __init__(self, input_dir: Path, label_dirs: Dict[str, Path]):
+    def __init__(self, input_dir: Path, label_dirs: Dict[str, Path], archive_dir: Path | None = None):
         self._input_dir = input_dir
         self._label_dirs = label_dirs
+        self._archive_dir = archive_dir
 
     @property
     def input_dir(self) -> Path:
@@ -140,6 +141,34 @@ class ImageStore:
 
     def move_to_label(self, filename: str, label: str) -> None:
         self.move_between_folders(filename=filename, source_folder="input", dest_folder=label)
+
+    def archive_images(self, folder: str) -> int:
+        """Archive all images from the specified folder. Returns count of archived images."""
+        if self._archive_dir is None:
+            raise ValueError("archive_dir not configured")
+
+        self.ensure_dirs()
+        self._archive_dir.mkdir(parents=True, exist_ok=True)
+
+        source_dir = self.dir_for_folder(folder)
+
+        count = 0
+        with os.scandir(source_dir) as it:
+            for entry in it:
+                if not entry.is_file():
+                    continue
+                name = entry.name
+                if not name or name.startswith("."):
+                    continue
+                if not _is_image_filename(name):
+                    continue
+
+                src = source_dir / name
+                dest = self._archive_dir / name
+                self._move(src, dest)
+                count += 1
+
+        return count
 
     def counts(self) -> Counts:
         self.ensure_dirs()
