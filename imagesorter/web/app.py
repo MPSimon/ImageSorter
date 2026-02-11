@@ -14,7 +14,7 @@ from flask import (
 )
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from imagesorter.application.services import AppState, ImageSorterService
+from imagesorter.application.services import ImageSorterService
 from imagesorter.domain.settings import Settings
 from imagesorter.infrastructure.image_store import ImageStore
 from imagesorter.infrastructure.settings_store import SettingsStore
@@ -32,11 +32,11 @@ def _secret_key() -> str:
     return "dev-secret-change-me"
 
 
-def _build_service(store: SettingsStore, state: AppState) -> ImageSorterService:
+def _build_service(store: SettingsStore) -> ImageSorterService:
     settings = store.load()
     label_dirs: Dict[str, Path] = {k: Path(v) for k, v in settings.label_dirs.items()}
     image_store = ImageStore(input_dir=Path(settings.input_dir), label_dirs=label_dirs)
-    return ImageSorterService(store=image_store, settings=settings, state=state)
+    return ImageSorterService(store=image_store, settings=settings)
 
 
 def create_app() -> Flask:
@@ -45,10 +45,8 @@ def create_app() -> Flask:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
     store = SettingsStore(_settings_path())
-    state = AppState(processed=set())
-
     def svc() -> ImageSorterService:
-        return _build_service(store=store, state=state)
+        return _build_service(store=store)
 
     @app.get("/login")
     def login():
@@ -89,7 +87,7 @@ def create_app() -> Flask:
         new_settings = Settings.from_dict(merged)
         store.save(new_settings)
         try:
-            _build_service(store=store, state=state)._store.ensure_dirs()
+            _build_service(store=store)._store.ensure_dirs()
         except Exception:
             pass
         return jsonify({"success": True})
@@ -109,12 +107,6 @@ def create_app() -> Flask:
             return jsonify(svc().counts())
         except Exception as e:
             return jsonify({"error": str(e), "input": 0}), 500
-
-    @app.post("/reset")
-    @login_required
-    def reset():
-        svc().reset_processed()
-        return jsonify({"success": True})
 
     @app.get("/image/<path:filename>")
     @login_required

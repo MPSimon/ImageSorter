@@ -1,20 +1,13 @@
-from dataclasses import dataclass
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 
 from imagesorter.domain.settings import Settings
 from imagesorter.infrastructure.image_store import ImageStore
 
 
-@dataclass
-class AppState:
-    processed: Set[str]
-
-
 class ImageSorterService:
-    def __init__(self, store: ImageStore, settings: Settings, state: AppState):
+    def __init__(self, store: ImageStore, settings: Settings):
         self._store = store
         self._settings = settings
-        self._state = state
 
     def list_images(self, count: int, folder: str = "input") -> Tuple[List[str], int]:
         # Don't filter based on per-process memory. With multiple gunicorn workers,
@@ -23,10 +16,6 @@ class ImageSorterService:
 
     def label_image(self, filename: str, label: str, source_folder: str = "input") -> None:
         self._store.move_between_folders(filename=filename, source_folder=source_folder, dest_folder=label)
-
-    def reset_processed(self) -> None:
-        # No-op (kept for API compatibility).
-        return
 
     def counts(self) -> Dict[str, int]:
         c = self._store.counts()

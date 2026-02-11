@@ -334,7 +334,6 @@
                     </div>
                     <button id="load-images-btn">Reload Images</button>
                     <button id="save-settings-btn">Save Settings</button>
-                    <button id="reset-btn">Reset Processed</button>
                 </div>
 	                <div class="directory-counts">
 		                    <div class="count-item">
@@ -395,7 +394,6 @@
                 const processPanel = document.getElementById('process-panel');
 		        const loadImagesBtn = document.getElementById('load-images-btn');
 		        const saveSettingsBtn = document.getElementById('save-settings-btn');
-		        const resetBtn = document.getElementById('reset-btn');
 		        const gridColumnsSlider = document.getElementById('grid-columns');
 		        const columnValue = document.getElementById('column-value');
 		        const imageCountInput = document.getElementById('image-count-input');
@@ -663,16 +661,7 @@
             console.log(`Grid columns updated to ${columns}`);
         }
 
-	            async function resetProcessed() {
-            console.log('Resetting processed images...');
-            const result = await fetchWithErrorHandling('/reset', { method: 'POST' });
-            if (result && result.success) {
-                await loadImages();
-                console.log('Processed images reset successfully');
-            }
-        }
-
-	        async function updateCounts() {
+		        async function updateCounts() {
 	            console.log('Updating counts...');
 	            const counts = await fetchWithErrorHandling('/counts');
 	            if (counts) {
@@ -707,7 +696,6 @@
 	        gridColumnsSlider.addEventListener('input', (e) => updateGridColumns(e.target.value));
 	        loadImagesBtn.addEventListener('click', () => loadImages(false));
 	        saveSettingsBtn.addEventListener('click', saveSettings);
-	        resetBtn.addEventListener('click', resetProcessed);
             if (processFolderBtn) {
                 processFolderBtn.addEventListener('click', processCurrentFolder);
             }
