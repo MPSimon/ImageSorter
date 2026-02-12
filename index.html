@@ -109,8 +109,9 @@
             }
             .corner-action {
                 position: absolute;
-                top: 8px;
-                left: 8px;
+                left: 50%;
+                bottom: 8px;
+                transform: translateX(-50%);
                 z-index: 5;
                 border: 0;
                 border-radius: 999px;
@@ -124,7 +125,7 @@
                 background: rgba(2, 6, 23, 0.55);
                 border: 1px solid rgba(255,255,255,0.16);
                 box-shadow: 0 14px 30px rgba(0,0,0,0.28);
-                transition: transform 120ms ease, background-color 120ms ease, opacity 120ms ease;
+                transition: background-color 120ms ease, opacity 120ms ease;
                 opacity: 0.0;
                 display: flex;
                 align-items: center;
@@ -134,7 +135,6 @@
                 opacity: 1.0;
             }
             .corner-action:hover {
-                transform: translateY(-1px);
                 background: rgba(239, 68, 68, 0.65);
             }
             .corner-action svg {
@@ -166,14 +166,10 @@
 		            background-color: var(--card-background);
 		            border-radius: 5px;
 		            cursor: pointer;
-		            transition: transform 0.3s ease;
+		            transition: border-color 120ms ease;
 		            overflow: hidden;
 		            border: 1px solid var(--border-color);
 		        }
-	        .image-item:hover {
-	            transform: scale(1.03);
-                z-index: 2;
-	        }
 	        .image-item img {
 	            position: absolute;
 	            top: 0;
@@ -185,45 +181,84 @@
             .image-overlay {
                 position: absolute;
                 inset: 0;
-                display: none;
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: 1fr 1fr;
+                display: block;
+                background:
+                    linear-gradient(
+                        to right,
+                        transparent calc(50% - 1px),
+                        rgba(255, 255, 255, 0.18) calc(50% - 1px),
+                        rgba(255, 255, 255, 0.18) calc(50% + 1px),
+                        transparent calc(50% + 1px)
+                    ),
+                    linear-gradient(
+                        to bottom,
+                        transparent calc(50% - 1px),
+                        rgba(255, 255, 255, 0.18) calc(50% - 1px),
+                        rgba(255, 255, 255, 0.18) calc(50% + 1px),
+                        transparent calc(50% + 1px)
+                    ),
+                    rgba(2, 6, 23, 0.015);
                 opacity: 0;
                 transition: opacity 120ms ease;
                 pointer-events: none;
             }
             .image-item:hover .image-overlay {
-                display: grid;
                 opacity: 1;
             }
-            .image-cell {
+            .zone-corner-action {
+                position: absolute;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 1px solid rgba(255, 255, 255, 0.14);
-                background: rgba(2, 6, 23, 0.16);
-                backdrop-filter: blur(8px);
-            }
-            .image-cell .zone-label {
-                font-size: 12px;
-                letter-spacing: 0.10em;
-                text-transform: uppercase;
-                padding: 8px 12px;
+                z-index: 4;
+                min-width: 86px;
+                height: 28px;
                 border-radius: 999px;
-                color: rgba(255, 255, 255, 0.92);
-                background: rgba(2, 6, 23, 0.55);
-                border: 1px solid rgba(255, 255, 255, 0.16);
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-                text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+                border: 1px solid color-mix(in srgb, var(--zone-color, #999) 35%, rgba(255,255,255,0.2));
+                background: color-mix(in srgb, var(--zone-color, #999) 14%, rgba(2, 6, 23, 0.84));
+                color: rgba(255,255,255,0.82);
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                padding: 0 10px;
+                cursor: pointer;
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+                opacity: 0;
+                transition: opacity 120ms ease, filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease, transform 120ms ease, background-color 120ms ease;
             }
-            .image-cell.active {
-                background: rgba(255, 255, 255, 0.10);
+            .image-item:hover .zone-corner-action {
+                opacity: 1;
             }
-            .image-cell.active .zone-label {
-                border-color: color-mix(in srgb, var(--zone-color, #999) 70%, rgba(255,255,255,0.25));
+            .zone-corner-action:hover {
+                filter: brightness(1.1);
+            }
+            .zone-corner-action.active {
+                opacity: 1;
+                transform: scale(1.12);
+                border-color: color-mix(in srgb, var(--zone-color, #999) 88%, white);
+                background: color-mix(in srgb, var(--zone-color, #999) 58%, rgba(2, 6, 23, 0.65));
+                color: rgba(255,255,255,0.98);
                 box-shadow:
-                    0 0 0 2px color-mix(in srgb, var(--zone-color, #999) 70%, rgba(255,255,255,0.25)),
-                    0 12px 28px rgba(0, 0, 0, 0.28);
+                    0 0 0 2px color-mix(in srgb, var(--zone-color, #999) 72%, rgba(255,255,255,0.3)),
+                    0 12px 30px rgba(0, 0, 0, 0.34);
+                filter: saturate(1.2) brightness(1.08);
+            }
+            .zone-top-left {
+                top: 8px;
+                left: 8px;
+            }
+            .zone-top-right {
+                top: 8px;
+                right: 8px;
+            }
+            .zone-bottom-left {
+                bottom: 8px;
+                left: 8px;
+            }
+            .zone-bottom-right {
+                bottom: 8px;
+                right: 8px;
             }
         .selected::before {
             content: "";
@@ -564,36 +599,39 @@
 
                             const overlay = document.createElement('div');
                             overlay.className = 'image-overlay';
-
-	                            const labels = (appConfig && appConfig.labels) ? appConfig.labels : ['good', 'regenerate', 'upscale', 'bad'];
-	                            const order = labels.slice(0, 4);
-	                            const cells = [];
-	                            order.forEach((label) => {
-	                                const cell = document.createElement('div');
-	                                cell.className = 'image-cell';
-	                                cell.style.setProperty('--zone-color', ZONE_COLORS[label] || '#999');
-
-	                                const text = document.createElement('div');
-	                                text.className = 'zone-label';
-	                                text.textContent = label;
-	                                cell.appendChild(text);
-
-	                                overlay.appendChild(cell);
-	                                cells.push(cell);
-	                            });
 	                            imgContainer.appendChild(overlay);
-
-	                            imgContainer.addEventListener('mousemove', (ev) => {
-	                                const idx = quadrantForClick(imgContainer, ev);
-	                                for (let i = 0; i < cells.length; i++) {
-	                                    cells[i].classList.toggle('active', i === idx);
-	                                }
-	                            });
-	                            imgContainer.addEventListener('mouseleave', () => {
-	                                for (let i = 0; i < cells.length; i++) {
-	                                    cells[i].classList.remove('active');
-	                                }
-	                            });
+                            const labels = (appConfig && appConfig.labels) ? appConfig.labels : ['good', 'regenerate', 'upscale', 'bad'];
+                            const order = labels.slice(0, 4);
+                            const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+                            const cornerLabelText = (label) => {
+                                if (label === 'regenerate') return 'Regen';
+                                if (!label) return '';
+                                return label.charAt(0).toUpperCase() + label.slice(1);
+                            };
+                            const cornerButtons = [];
+                            order.forEach((label, idx) => {
+                                const cornerButton = document.createElement('button');
+                                cornerButton.className = `zone-corner-action zone-${corners[idx]}`;
+                                cornerButton.type = 'button';
+                                cornerButton.style.setProperty('--zone-color', ZONE_COLORS[label] || '#999');
+                                cornerButton.textContent = cornerLabelText(label);
+                                cornerButton.addEventListener('click', async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    await applyLabel(imgContainer, image, label);
+                                });
+                                imgContainer.appendChild(cornerButton);
+                                cornerButtons.push(cornerButton);
+                            });
+                            imgContainer.addEventListener('mousemove', (ev) => {
+                                const idx = quadrantForClick(imgContainer, ev);
+                                imgContainer.classList.add('has-active');
+                                cornerButtons.forEach((btn, i) => btn.classList.toggle('active', i === idx));
+                            });
+                            imgContainer.addEventListener('mouseleave', () => {
+                                imgContainer.classList.remove('has-active');
+                                cornerButtons.forEach((btn) => btn.classList.remove('active'));
+                            });
 
                             imgContainer.addEventListener('click', (ev) => handleZoneClick(ev, imgContainer, image));
 		                        imageContainer.appendChild(imgContainer);
@@ -636,7 +674,9 @@
 	                const labels = (appConfig && appConfig.labels) ? appConfig.labels : ['good', 'regenerate', 'upscale', 'bad'];
 	                const idx = quadrantForClick(imgContainer, ev);
 	                const label = labels[idx] || labels[0];
-
+                await applyLabel(imgContainer, filename, label);
+            }
+            async function applyLabel(imgContainer, filename, label) {
                 imgContainer.style.outline = `3px solid ${(ZONE_COLORS[label] || '#999')}`;
 	                const result = await fetchWithErrorHandling('/api/label', {
 	                    method: 'POST',
@@ -778,22 +818,43 @@
 
             function updateProcessUI() {
                 if (!processPanel || !processFolderBtn || !processFolderStatus) return;
-                const canProcess = (currentFolder === 'good' || currentFolder === 'regenerate' || currentFolder === 'upscale');
+                const canProcess = (currentFolder === 'good' || currentFolder === 'regenerate' || currentFolder === 'upscale' || currentFolder === 'bad');
                 processPanel.style.display = canProcess ? 'block' : 'none';
                 processFolderBtn.style.display = canProcess ? 'block' : 'none';
                 processFolderStatus.style.display = canProcess ? 'block' : 'none';
-                processFolderStatus.textContent = canProcess ? `Process ${folderLabel(currentFolder)} folder` : '';
+
+                if (canProcess) {
+                    const isDelete = currentFolder === 'bad';
+                    const action = isDelete ? 'Delete' : 'Process';
+                    processFolderBtn.textContent = `${action} Images In This Folder`;
+                    processFolderStatus.textContent = `${action} ${folderLabel(currentFolder)} folder`;
+                }
             }
 
             async function processCurrentFolder() {
                 if (!processFolderBtn) return;
+
+                // Show confirmation dialog for delete operation
+                if (currentFolder === 'bad') {
+                    const imageCount = document.getElementById('bad-count')?.textContent || '0';
+                    const confirmMessage = `Delete all ${imageCount} images from Bad folder?`;
+                    if (!confirm(confirmMessage)) {
+                        return;
+                    }
+                }
+
                 const result = await fetchWithErrorHandling('/api/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ folder: currentFolder }),
                 });
+
                 if (result && result.success) {
-                    alert(`Queued processing for '${folderLabel(currentFolder)}' (${result.total_available} images).`);
+                    if (currentFolder === 'bad') {
+                        loadImages(false); // Refresh the image grid silently
+                    } else {
+                        alert(`Queued processing for '${folderLabel(currentFolder)}' (${result.total_available} images).`);
+                    }
                 }
             }
 
