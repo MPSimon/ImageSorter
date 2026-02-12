@@ -1,13 +1,14 @@
 from typing import Dict, List, Tuple
 
-from imagesorter.domain.settings import Settings
 from imagesorter.infrastructure.image_store import ImageStore
 
 
 class ImageSorterService:
-    def __init__(self, store: ImageStore, settings: Settings):
+    def __init__(self, store: ImageStore, labels: List[str], default_image_count: int = 20, default_grid_columns: int = 5):
         self._store = store
-        self._settings = settings
+        self._labels = list(labels)
+        self._default_image_count = int(default_image_count)
+        self._default_grid_columns = int(default_grid_columns)
 
     def list_images(self, count: int, folder: str = "input") -> Tuple[List[str], int]:
         # Don't filter based on per-process memory. With multiple gunicorn workers,
@@ -27,4 +28,8 @@ class ImageSorterService:
         return self._store.save_upload(original_filename=filename, data=data)
 
     def public_config(self) -> Dict:
-        return self._settings.to_public_dict()
+        return {
+            "labels": list(self._labels),
+            "image_count": self._default_image_count,
+            "grid_columns": self._default_grid_columns,
+        }

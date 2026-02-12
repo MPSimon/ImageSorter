@@ -7,18 +7,13 @@ services:
     env_file:
       - .env
     environment:
-      - IMAGESORTER_SETTINGS=/app/settings.json
       - IMAGESORTER_SECRET_KEY=${IMAGESORTER_SECRET_KEY}
       - IMAGESORTER_PASSWORD=${IMAGESORTER_PASSWORD}
       - IMAGESORTER_UPLOAD_TOKEN=${IMAGESORTER_UPLOAD_TOKEN}
       - IMAGESORTER_MAX_UPLOAD_MB=${IMAGESORTER_MAX_UPLOAD_MB:-20}
+      - IMAGESORTER_DATA_ROOT=/data
     volumes:
-      - ./settings.json:/app/settings.json
-      - ${IMAGESORTER_INPUT_DIR:-./storage/input}:/data/input
-      - ${IMAGESORTER_GOOD_DIR:-./storage/good}:/data/good
-      - ${IMAGESORTER_REGENERATE_DIR:-./storage/regenerate}:/data/regenerate
-      - ${IMAGESORTER_UPSCALE_DIR:-./storage/upscale}:/data/upscale
-      - ${IMAGESORTER_BAD_DIR:-./storage/bad}:/data/bad
+      - ./storage:/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/login').read()"]
       interval: 10s

@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 
@@ -16,14 +17,42 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from imagesorter.application.services import ImageSorterService
-from imagesorter.domain.settings import Settings
 from imagesorter.infrastructure.image_store import ImageStore
-from imagesorter.infrastructure.settings_store import SettingsStore
 from imagesorter.web.auth import check_password, login_required, upload_token_ok
 
+LABELS = ("good", "regenerate", "upscale", "bad")
+DEFAULT_IMAGE_COUNT = 20
+DEFAULT_GRID_COLUMNS = 5
 
-def _settings_path() -> Path:
-    return Path(os.getenv("IMAGESORTER_SETTINGS", "settings.json"))
+
+@dataclass(frozen=True)
+class RuntimePaths:
+    input_dir: Path
+    label_dirs: Dict[str, Path]
+    archive_dir: Path
+
+
+def _default_data_root() -> Path:
+    container_root = Path("/data")
+    if container_root.exists():
+        return container_root
+    return Path("storage")
+
+
+def _data_root() -> Path:
+    raw = os.getenv("IMAGESORTER_DATA_ROOT")
+    if raw:
+        return Path(raw)
+    return _default_data_root()
+
+
+def _runtime_paths() -> RuntimePaths:
+    root = _data_root()
+    return RuntimePaths(
+        input_dir=root / "input",
+        label_dirs={label: root / label for label in LABELS},
+        archive_dir=root / "archive",
+    )
 
 
 def _secret_key() -> str:
@@ -42,11 +71,21 @@ def _max_upload_mb() -> int:
     return max(1, mb)
 
 
-def _build_service(store: SettingsStore) -> ImageSorterService:
-    settings = store.load()
-    label_dirs: Dict[str, Path] = {k: Path(v) for k, v in settings.label_dirs.items()}
-    image_store = ImageStore(input_dir=Path(settings.input_dir), label_dirs=label_dirs)
-    return ImageSorterService(store=image_store, settings=settings)
+def _safe_int(raw: str | None, default: int) -> int:
+    try:
+        return int(raw) if raw is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _build_service(paths: RuntimePaths) -> ImageSorterService:
+    image_store = ImageStore(input_dir=paths.input_dir, label_dirs=paths.label_dirs, archive_dir=paths.archive_dir)
+    return ImageSorterService(
+        store=image_store,
+        labels=list(LABELS),
+        default_image_count=DEFAULT_IMAGE_COUNT,
+        default_grid_columns=DEFAULT_GRID_COLUMNS,
+    )
 
 
 def create_app() -> Flask:
@@ -55,9 +94,13 @@ def create_app() -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = _max_upload_mb() * 1024 * 1024
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
-    store = SettingsStore(_settings_path())
-    def svc() -> ImageSorterService:
-        return _build_service(store=store)
+    paths = _runtime_paths()
+    service = _build_service(paths=paths)
+
+    try:
+        service._store.ensure_dirs()
+    except Exception:
+        pass
 
     @app.get("/login")
     def login():
@@ -85,51 +128,30 @@ def create_app() -> Flask:
         with open("index.html", "r", encoding="utf-8") as f:
             return render_template_string(f.read())
 
-    @app.get("/settings")
-    @login_required
-    def settings_get():
-        return jsonify(svc().public_config())
-
-    @app.post("/settings")
-    @login_required
-    def settings_post():
-        current = store.load()
-        incoming = request.get_json(force=True, silent=True) or {}
-        merged = dict(current.to_public_dict())
-        merged.update(incoming)
-        new_settings = Settings.from_dict(merged)
-        store.save(new_settings)
-        try:
-            _build_service(store=store)._store.ensure_dirs()
-        except Exception:
-            pass
-        return jsonify({"success": True})
-
     @app.get("/images")
     @login_required
     def images():
-        count = int(request.args.get("count") or svc().public_config().get("image_count") or 20)
+        count = _safe_int(request.args.get("count"), DEFAULT_IMAGE_COUNT)
         folder = str(request.args.get("folder") or "input")
-        images, total = svc().list_images(count=count, folder=folder)
+        images, total = service.list_images(count=count, folder=folder)
         return jsonify({"images": images, "total_available": total})
 
     @app.get("/counts")
     @login_required
     def counts():
         try:
-            return jsonify(svc().counts())
+            return jsonify(service.counts())
         except Exception as e:
             return jsonify({"error": str(e), "input": 0}), 500
 
     @app.get("/image/<path:filename>")
     @login_required
     def image(filename: str):
-        settings = store.load()
         folder = str(request.args.get("folder") or "input")
         if folder == "input":
-            directory = settings.input_dir
+            directory = paths.input_dir
         else:
-            directory = settings.label_dirs.get(folder) or settings.input_dir
+            directory = paths.label_dirs.get(folder) or paths.input_dir
         return send_from_directory(directory, filename)
 
     @app.post("/api/label")
@@ -142,7 +164,7 @@ def create_app() -> Flask:
         if not filename or not label:
             return jsonify({"error": "filename and label required"}), 400
         try:
-            svc().label_image(filename=filename, label=label, source_folder=source)
+            service.label_image(filename=filename, label=label, source_folder=source)
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -152,24 +174,26 @@ def create_app() -> Flask:
     def api_process():
         data = request.get_json(force=True, silent=True) or {}
         folder = str(data.get("folder") or "")
-        if folder not in ("good", "regenerate", "upscale"):
-            return jsonify({"error": "folder must be one of: good, regenerate, upscale"}), 400
+        if folder not in LABELS:
+            return jsonify({"error": "folder must be one of: good, regenerate, upscale, bad"}), 400
 
-        # Placeholder for future background processing integration.
-        _images, total = svc().list_images(count=0, folder=folder)
+        if folder == "bad":
+            try:
+                deleted = service.archive_images(folder=folder)
+                return jsonify({"success": True, "deleted": deleted})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        _images, total = service.list_images(count=0, folder=folder)
         return jsonify({"success": True, "folder": folder, "total_available": total})
 
     @app.get("/api/config")
     @login_required
     def api_config():
-        return jsonify(svc().public_config())
+        return jsonify(service.public_config())
 
     @app.post("/api/upload")
     def api_upload():
-        # Upload is allowed when:
-        # - app is password-protected AND caller has a logged-in session, OR
-        # - caller provides a valid upload token, OR
-        # - password is disabled (dev/local use)
         pw_enabled = bool(os.getenv("IMAGESORTER_PASSWORD", ""))
         if pw_enabled and session.get("authed") is True:
             pass
@@ -186,7 +210,7 @@ def create_app() -> Flask:
         f = request.files["file"]
         name = f.filename or "upload"
         data = f.read()
-        out = svc().upload(filename=name, data=data)
+        out = service.upload(filename=name, data=data)
         return jsonify({"success": True, "filename": out})
 
     @app.errorhandler(RequestEntityTooLarge)

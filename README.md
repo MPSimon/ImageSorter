@@ -27,9 +27,15 @@ Each click immediately moves the file into the corresponding folder.
    docker compose up -d --build
    ```
 
-3. The container reads `settings.json` (mounted as `/app/settings.json`) and uses `/data/...` paths inside the container.
-   - Default host folders are project-local: `./storage/input`, `./storage/good`, `./storage/regenerate`, `./storage/upscale`, `./storage/bad`.
-   - You can override host paths with `IMAGESORTER_*_DIR` environment variables.
+3. The container uses `/data` as its runtime data root.
+   - By default, `docker-compose.yml` mounts `./storage` to `/data`.
+   - Folder layout is fixed and derived automatically:
+     - `/data/input`
+     - `/data/good`
+     - `/data/regenerate`
+     - `/data/upscale`
+     - `/data/bad`
+     - `/data/archive`
 
 4. Open:
    - `http://localhost:5050/`
@@ -65,7 +71,7 @@ Each click immediately moves the file into the corresponding folder.
 
 ## Usage
 1. Click "Reload Images" to refresh the current folder view
-2. `grid_columns` and `image_count` auto-save when changed
+2. `grid_columns` and `image_count` are browser-local preferences (stored in `localStorage`)
 3. Click a quadrant on an image to label it (the file is moved immediately)
 4. Use the top tabs to browse labeled folders and re-label images
 5. In labeled folders, click "Unlabel" to send an image back to Unlabeled
@@ -74,9 +80,9 @@ Each click immediately moves the file into the corresponding folder.
 
 ## Development Notes
 
-- `settings.json` is the single source of truth for runtime settings.
-- Host folders are mounted to `/data/...` via `docker-compose.yml`.
-- Default host-side storage is `./storage/...` (inside the project directory), suitable for local and VPS Docker deployments.
+- Runtime paths are defaults-first: one data root (`IMAGESORTER_DATA_ROOT`, default `/data` in container, `storage` in local Python runs).
+- Labels and folders are intentionally fixed to reduce operational complexity.
+- Default host-side storage is `./storage` (mounted to `/data` in Docker), suitable for local and VPS deployments.
 - Sidebar directory path fields and click-zone legend were intentionally removed to keep the UI focused on rating.
 
 ## Linting

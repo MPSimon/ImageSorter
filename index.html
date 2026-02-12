@@ -443,6 +443,7 @@
 	        let lastTotalAvailable = 0;
             let appConfig = null;
             let currentFolder = 'input';
+            const UI_PREFS_KEY = 'imagesorter.ui_prefs.v1';
 
             const ZONE_COLORS = {
                 good: '#22c55e',
@@ -515,37 +516,41 @@
                 await updateCounts();
             }
 
+            function loadUiPrefs() {
+                try {
+                    const raw = localStorage.getItem(UI_PREFS_KEY);
+                    if (!raw) return {};
+                    const parsed = JSON.parse(raw);
+                    return (parsed && typeof parsed === 'object') ? parsed : {};
+                } catch (_) {
+                    return {};
+                }
+            }
+
+            function saveUiPrefs() {
+                const prefs = {
+                    image_count: parseInt(imageCountInput.value, 10) || 20,
+                    grid_columns: parseInt(gridColumnsSlider.value, 10) || 5,
+                };
+                localStorage.setItem(UI_PREFS_KEY, JSON.stringify(prefs));
+            }
+
 	        async function loadSettings() {
 	            console.log('Loading settings...');
 	            const settings = await fetchWithErrorHandling('/api/config');
 	            if (settings) {
                     appConfig = settings;
-	                imageCountInput.value = settings.image_count || 20;
-	                gridColumnsSlider.value = settings.grid_columns || 5;
+                    const prefs = loadUiPrefs();
+	                imageCountInput.value = prefs.image_count || settings.image_count || 20;
+	                gridColumnsSlider.value = prefs.grid_columns || settings.grid_columns || 5;
 	                updateGridColumns(gridColumnsSlider.value);
 	                console.log('Settings loaded successfully');
 	            }
 	        }
 
-	        async function saveSettings({ showConfirmation = false } = {}) {
-	            console.log('Saving settings...');
-	            const settings = {
-	                image_count: parseInt(imageCountInput.value),
-	                grid_columns: parseInt(gridColumnsSlider.value)
-	            };
-	            const result = await fetchWithErrorHandling('/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-	                body: JSON.stringify(settings),
-	            });
-	            if (result && result.success) {
-	                console.log('Settings saved successfully');
-                    if (showConfirmation) {
-                        alert('Settings saved successfully!');
-                    }
-	            }
+	        function saveSettings() {
+	            console.log('Saving UI preferences locally...');
+                saveUiPrefs();
 	        }
 
 	        async function loadImages(isAutoRefresh = false) {
