@@ -2,15 +2,14 @@
 
 ## Project Overview
 
-A Flask-based web application for efficiently sorting and categorizing images with keyboard shortcuts and batch operations.
+A web-based image sorting application for categorizing images into folders (good, regenerate, upscale, bad) with drag-and-drop upload and keyboard-based sorting interface.
 
 ## Tech Stack
 
-- **Language**: Python 3.12+
-- **Backend**: Flask, Gunicorn
-- **Frontend**: Vanilla JavaScript, HTML5, CSS3
+- **Languages**: Python 3.12+, JavaScript (ES6+), HTML5, CSS3
+- **Backend**: Flask 3.1.0, Gunicorn 23.0.0
+- **Frontend**: Vanilla JavaScript, Fetch API
 - **Infrastructure**: Docker, docker-compose, nginx
-- **Tools**: Ruff (linting), Mypy (type checking), Pytest (testing)
 
 ## Your Identity
 
@@ -159,4 +158,3 @@ ORCHESTRATOR: Update this section as the project evolves.
 Include: active work, recent decisions, known issues, architectural notes.
 Keep it concise — pointers to files are better than duplicated content.
 -->
-
