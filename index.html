@@ -358,6 +358,17 @@
         <aside class="sidebar">
 	            <div class="sidebar-content">
 	                <h2>Image Sorter Controls</h2>
+                    <div class="control-group">
+                        <label for="project-select">Active Project:</label>
+                        <select id="project-select"></select>
+                    </div>
+                    <div class="control-group">
+                        <label for="new-project-name">Create Project:</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="new-project-name" placeholder="project-name" />
+                            <button id="create-project-btn" type="button">Create</button>
+                        </div>
+                    </div>
 	                <div class="controls">
 	                    <div class="control-group">
 	                        <label for="grid-columns">Grid Columns: <span id="column-value">5</span></label>
@@ -372,7 +383,7 @@
 	                <div class="directory-counts">
 		                    <div class="count-item">
 		                        <div>Unlabeled</div>
-		                        <div id="input-count" class="count-value">0</div>
+		                        <div id="unlabeled-count" class="count-value">0</div>
 		                    </div>
 	                    <div class="count-item">
 	                        <div>Good</div>
@@ -407,7 +418,7 @@
 	                <button class="toggle-sidebar">☰</button>
                     <div class="top-nav" style="flex-grow: 1; justify-content: flex-end;">
                         <div class="folder-tabs" id="folder-tabs">
-                            <button class="folder-btn active" data-folder="input">Unlabeled</button>
+                            <button class="folder-btn active" data-folder="unlabeled">Unlabeled</button>
                             <button class="folder-btn" data-folder="good">Good</button>
                             <button class="folder-btn" data-folder="regenerate">Regen</button>
                             <button class="folder-btn" data-folder="upscale">Upscale</button>
@@ -430,19 +441,23 @@
 		        const gridColumnsSlider = document.getElementById('grid-columns');
 		        const columnValue = document.getElementById('column-value');
 		        const imageCountInput = document.getElementById('image-count-input');
-		        const inputCountElement = document.getElementById('input-count');
+		        const unlabeledCountElement = document.getElementById('unlabeled-count');
 		        const goodCountElement = document.getElementById('good-count');
 		        const regenerateCountElement = document.getElementById('regenerate-count');
 	        const upscaleCountElement = document.getElementById('upscale-count');
 	        const badCountElement = document.getElementById('bad-count');
             const processFolderBtn = document.getElementById('process-folder-btn');
             const processFolderStatus = document.getElementById('process-folder-status');
-	        
+            const projectSelect = document.getElementById('project-select');
+            const createProjectBtn = document.getElementById('create-project-btn');
+            const newProjectNameInput = document.getElementById('new-project-name');
+
 	        let displayedImages = [];
 	        let autoRefreshInterval = null;
 	        let lastTotalAvailable = 0;
             let appConfig = null;
-            let currentFolder = 'input';
+            let currentFolder = 'unlabeled';
+            let currentProject = '';
             const UI_PREFS_KEY = 'imagesorter.ui_prefs.v1';
 
             const ZONE_COLORS = {
@@ -489,11 +504,62 @@
                 return `${bytes.toFixed(1)} ${units[u]}`;
             }
 
+            async function loadProjects() {
+                const payload = await fetchWithErrorHandling('/api/projects');
+                if (!payload) return false;
+                const projects = payload.projects || [];
+                const active = payload.active_project || '';
+
+                projectSelect.innerHTML = '';
+                projects.forEach((project) => {
+                    const option = document.createElement('option');
+                    option.value = project;
+                    option.textContent = project;
+                    projectSelect.appendChild(option);
+                });
+
+                if (active) {
+                    projectSelect.value = active;
+                    currentProject = active;
+                }
+                return true;
+            }
+
+            async function switchProject(projectName) {
+                if (!projectName) return;
+                const result = await fetchWithErrorHandling('/api/projects/select', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project: projectName }),
+                });
+                if (!result || !result.success) return;
+                currentProject = result.active_project || projectName;
+                await loadImages(false);
+                await updateCounts();
+                updateProcessUI();
+            }
+
+            async function createProject() {
+                const name = (newProjectNameInput.value || '').trim();
+                if (!name) {
+                    alert('Enter a project name.');
+                    return;
+                }
+                const result = await fetchWithErrorHandling('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name }),
+                });
+                if (!result || !result.success) return;
+                newProjectNameInput.value = '';
+                await loadProjects();
+                await switchProject(result.project);
+            }
+
             async function uploadFilesToUnlabeled(files) {
                 if (!files || files.length === 0) return;
 
-                // Keep it simple: allow drag-drop only when browsing Unlabeled.
-                if (currentFolder !== 'input') {
+                if (currentFolder !== 'unlabeled') {
                     alert('Switch to Unlabeled to upload files.');
                     return;
                 }
@@ -508,6 +574,7 @@
                 for (const file of uploads) {
                     const form = new FormData();
                     form.append('file', file, file.name);
+                    form.append('project', currentProject);
                     const result = await fetchWithErrorHandling('/api/upload', { method: 'POST', body: form });
                     if (!result || !result.success) return;
                 }
@@ -537,7 +604,7 @@
 
 	        async function loadSettings() {
 	            console.log('Loading settings...');
-	            const settings = await fetchWithErrorHandling('/api/config');
+	            const settings = await fetchWithErrorHandling(`/api/config?project=${encodeURIComponent(currentProject)}`);
 	            if (settings) {
                     appConfig = settings;
                     const prefs = loadUiPrefs();
@@ -554,16 +621,15 @@
 	        }
 
 	        async function loadImages(isAutoRefresh = false) {
+            if (!currentProject) return;
             console.log(isAutoRefresh ? 'Auto-refreshing images...' : 'Loading images...');
             const count = imageCountInput.value;
-	            const response = await fetchWithErrorHandling(`/images?count=${count}&folder=${encodeURIComponent(currentFolder)}`);
-            
+	            const response = await fetchWithErrorHandling(`/images?count=${count}&folder=${encodeURIComponent(currentFolder)}&project=${encodeURIComponent(currentProject)}`);
+
             if (response) {
                 const images = response.images || [];
                 const totalAvailable = response.total_available || 0;
-                
-	                // Auto-refresh should not reshuffle UI if the current page of images hasn't changed.
-	                // New images arriving beyond the current page should not cause the grid to twitch.
+
 	                if (isAutoRefresh &&
 	                    images.length === displayedImages.length &&
 	                    images.every((img, i) => img === displayedImages[i])) {
@@ -572,25 +638,21 @@
 	                    console.log('No visible changes detected during auto-refresh');
 	                    return;
 	                }
-                
-                // Update the displayed images
+
 	                displayedImages = images;
 	                lastTotalAvailable = totalAvailable;
-                
-                // Clear the container
                 imageContainer.innerHTML = '';
-                
-                // Add images to the container
+
 	                if (images.length > 0) {
 		                    images.forEach(image => {
 		                        const imgContainer = document.createElement('div');
 		                        imgContainer.classList.add('image-item');
 		                        const img = document.createElement('img');
-		                        img.src = `/image/${encodeURIComponent(image)}?folder=${encodeURIComponent(currentFolder)}`;
+		                        img.src = `/image/${encodeURIComponent(image)}?folder=${encodeURIComponent(currentFolder)}&project=${encodeURIComponent(currentProject)}`;
 		                        img.alt = image;
 		                        imgContainer.appendChild(img);
 
-                                if (currentFolder !== 'input') {
+                                if (currentFolder !== 'unlabeled') {
                                     const back = document.createElement('button');
                                     back.className = 'corner-action';
                                     back.innerHTML = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 14l-4-4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 20v-4a4 4 0 0 0-4-4H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Unlabel</span>`;
@@ -641,8 +703,7 @@
                             imgContainer.addEventListener('click', (ev) => handleZoneClick(ev, imgContainer, image));
 		                        imageContainer.appendChild(imgContainer);
 		                    });
-                    
-                    // If we have more images available than we're showing, add a message
+
                     if (totalAvailable > images.length) {
                         const statusMsg = document.createElement('div');
                         statusMsg.className = 'status-message';
@@ -650,14 +711,13 @@
                         imageContainer.appendChild(statusMsg);
                     }
                 } else {
-                    // No images to display
                     const noImagesMsg = document.createElement('div');
                     noImagesMsg.className = 'status-message';
-                    noImagesMsg.textContent = 'No images available in the input directory';
+                    noImagesMsg.textContent = 'No images available in the unlabeled directory';
                     noImagesMsg.style.gridColumn = '1 / -1';
                     imageContainer.appendChild(noImagesMsg);
                 }
-                
+
 	                updateCounts();
 	                console.log(`${images.length} images loaded successfully (${totalAvailable} available)`);
 	            }
@@ -681,12 +741,13 @@
 	                const label = labels[idx] || labels[0];
                 await applyLabel(imgContainer, filename, label);
             }
+
             async function applyLabel(imgContainer, filename, label) {
                 imgContainer.style.outline = `3px solid ${(ZONE_COLORS[label] || '#999')}`;
 	                const result = await fetchWithErrorHandling('/api/label', {
 	                    method: 'POST',
 	                    headers: { 'Content-Type': 'application/json' },
-	                    body: JSON.stringify({ filename, label, source: currentFolder }),
+	                    body: JSON.stringify({ filename, label, source: currentFolder, project: currentProject }),
 	                });
                 if (result && result.success) {
                     imgContainer.remove();
@@ -707,10 +768,11 @@
         }
 
 		        async function updateCounts() {
+	            if (!currentProject) return;
 	            console.log('Updating counts...');
-	            const counts = await fetchWithErrorHandling('/counts');
+	            const counts = await fetchWithErrorHandling(`/counts?project=${encodeURIComponent(currentProject)}`);
 	            if (counts) {
-	                inputCountElement.textContent = counts.input;
+	                unlabeledCountElement.textContent = counts.unlabeled || 0;
 	                goodCountElement.textContent = counts.good || 0;
                     regenerateCountElement.textContent = counts.regenerate || 0;
                     upscaleCountElement.textContent = counts.upscale || 0;
@@ -718,18 +780,18 @@
 	                console.log('Counts updated successfully');
 	            }
 	        }
-        
+
         function startAutoRefresh() {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
             }
-            
+
             autoRefreshInterval = setInterval(() => {
                 loadImages(true);
-            }, 5000); // Check every 5 seconds
+            }, 5000);
             console.log('Auto-refresh started');
         }
-        
+
         function stopAutoRefresh() {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
@@ -759,8 +821,23 @@
             if (processFolderBtn) {
                 processFolderBtn.addEventListener('click', processCurrentFolder);
             }
+            if (createProjectBtn) {
+                createProjectBtn.addEventListener('click', createProject);
+            }
+            if (newProjectNameInput) {
+                newProjectNameInput.addEventListener('keydown', async (ev) => {
+                    if (ev.key === 'Enter') {
+                        ev.preventDefault();
+                        await createProject();
+                    }
+                });
+            }
+            if (projectSelect) {
+                projectSelect.addEventListener('change', async (ev) => {
+                    await switchProject(ev.target.value);
+                });
+            }
 
-        // Stop auto-refresh when the page is hidden and restart when visible again
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 stopAutoRefresh();
@@ -769,16 +846,18 @@
             }
         });
 
-	        loadSettings().then(() => {
-	            loadImages();
-	            updateCounts();
+            (async () => {
+                const ok = await loadProjects();
+                if (!ok || !currentProject) return;
+                await loadSettings();
+	            await loadImages();
+	            await updateCounts();
 	            startAutoRefresh();
-	        });
+            })();
 
-            // Drag & drop uploads (Unlabeled only).
             imageContainer.addEventListener('dragover', (ev) => {
                 ev.preventDefault();
-                if (currentFolder === 'input') {
+                if (currentFolder === 'unlabeled') {
                     imageContainer.style.outline = '3px dashed rgba(255,255,255,0.35)';
                     imageContainer.style.outlineOffset = '6px';
                 }
@@ -797,7 +876,7 @@
             });
 
             function setCurrentFolder(folder) {
-                currentFolder = folder || 'input';
+                currentFolder = folder || 'unlabeled';
                 if (folderTabs) {
                     folderTabs.querySelectorAll('.folder-btn').forEach((btn) => {
                         btn.classList.toggle('active', btn.dataset.folder === currentFolder);
@@ -816,7 +895,7 @@
             }
 
             function folderLabel(folder) {
-                if (folder === 'input') return 'Unlabeled';
+                if (folder === 'unlabeled') return 'Unlabeled';
                 if (folder === 'regenerate') return 'Regen';
                 return folder;
             }
@@ -839,7 +918,6 @@
             async function processCurrentFolder() {
                 if (!processFolderBtn) return;
 
-                // Show confirmation dialog for delete operation
                 if (currentFolder === 'bad') {
                     const imageCount = document.getElementById('bad-count')?.textContent || '0';
                     const confirmMessage = `Delete all ${imageCount} images from Bad folder?`;
@@ -851,12 +929,12 @@
                 const result = await fetchWithErrorHandling('/api/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folder: currentFolder }),
+                    body: JSON.stringify({ folder: currentFolder, project: currentProject }),
                 });
 
                 if (result && result.success) {
                     if (currentFolder === 'bad') {
-                        loadImages(false); // Refresh the image grid silently
+                        loadImages(false);
                     } else {
                         alert(`Queued processing for '${folderLabel(currentFolder)}' (${result.total_available} images).`);
                     }
@@ -867,7 +945,7 @@
                 const result = await fetchWithErrorHandling('/api/label', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filename, label: 'input', source: currentFolder }),
+                    body: JSON.stringify({ filename, label: 'unlabeled', source: currentFolder, project: currentProject }),
                 });
                 if (result && result.success) {
                     imgContainer.remove();

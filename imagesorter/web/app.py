@@ -1,7 +1,6 @@
 import os
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
+from typing import Optional
 
 from flask import (
     Flask,
@@ -18,18 +17,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from imagesorter.application.services import ImageSorterService
 from imagesorter.infrastructure.image_store import ImageStore
+from imagesorter.infrastructure.project_store import LABELS, SOURCE_FOLDER, ProjectStore
 from imagesorter.web.auth import check_password, login_required, upload_token_ok
 
-LABELS = ("good", "regenerate", "upscale", "bad")
 DEFAULT_IMAGE_COUNT = 20
 DEFAULT_GRID_COLUMNS = 5
-
-
-@dataclass(frozen=True)
-class RuntimePaths:
-    input_dir: Path
-    label_dirs: Dict[str, Path]
-    archive_dir: Path
 
 
 def _default_data_root() -> Path:
@@ -44,15 +36,6 @@ def _data_root() -> Path:
     if raw:
         return Path(raw)
     return _default_data_root()
-
-
-def _runtime_paths() -> RuntimePaths:
-    root = _data_root()
-    return RuntimePaths(
-        input_dir=root / "input",
-        label_dirs={label: root / label for label in LABELS},
-        archive_dir=root / "archive",
-    )
 
 
 def _secret_key() -> str:
@@ -78,10 +61,16 @@ def _safe_int(raw: str | None, default: int) -> int:
         return default
 
 
-def _build_service(paths: RuntimePaths) -> ImageSorterService:
-    image_store = ImageStore(input_dir=paths.input_dir, label_dirs=paths.label_dirs, archive_dir=paths.archive_dir)
+def _canonical_folder(raw: str | None) -> str:
+    folder = str(raw or SOURCE_FOLDER)
+    if folder == "input":
+        return SOURCE_FOLDER
+    return folder
+
+
+def _build_service(store: ImageStore) -> ImageSorterService:
     return ImageSorterService(
-        store=image_store,
+        store=store,
         labels=list(LABELS),
         default_image_count=DEFAULT_IMAGE_COUNT,
         default_grid_columns=DEFAULT_GRID_COLUMNS,
@@ -94,13 +83,37 @@ def create_app() -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = _max_upload_mb() * 1024 * 1024
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
-    paths = _runtime_paths()
-    service = _build_service(paths=paths)
+    data_root = _data_root()
+    project_store = ProjectStore(data_root=data_root)
+    project_store.migrate_legacy_layout_once()
 
-    try:
-        service._store.ensure_dirs()
-    except Exception:
-        pass
+    def service_for_project(project_name: str) -> ImageSorterService:
+        project_paths = project_store.paths_for_project(project_name)
+        image_store = ImageStore(source_dir=project_paths.source_dir, label_dirs=project_paths.label_dirs)
+        return _build_service(store=image_store)
+
+    def resolve_project(explicit: Optional[str] = None) -> str:
+        if explicit:
+            project = project_store.normalize_project_name(explicit)
+            if not project_store.project_exists(project):
+                raise FileNotFoundError(project)
+            session["active_project"] = project
+            return project
+
+        active = session.get("active_project")
+        if isinstance(active, str):
+            try:
+                normalized = project_store.normalize_project_name(active)
+            except ValueError:
+                normalized = ""
+            if normalized and project_store.project_exists(normalized):
+                project_store.ensure_project_dirs(normalized)
+                session["active_project"] = normalized
+                return normalized
+
+        default_project = project_store.ensure_default_project()
+        session["active_project"] = default_project
+        return default_project
 
     @app.get("/login")
     def login():
@@ -128,30 +141,105 @@ def create_app() -> Flask:
         with open("index.html", "r", encoding="utf-8") as f:
             return render_template_string(f.read())
 
+    @app.get("/api/projects")
+    @login_required
+    def api_projects():
+        projects = project_store.list_projects()
+        if not projects:
+            projects = [project_store.ensure_default_project()]
+
+        active_raw = session.get("active_project")
+        active = active_raw if isinstance(active_raw, str) else ""
+        if not active or active not in projects:
+            active = project_store.ensure_default_project()
+            session["active_project"] = active
+        return jsonify({"projects": projects, "active_project": active})
+
+    @app.post("/api/projects")
+    @login_required
+    def api_projects_create():
+        data = request.get_json(force=True, silent=True) or {}
+        raw_name = str(data.get("name") or "")
+        if not raw_name:
+            return jsonify({"error": "name is required"}), 400
+        try:
+            project_name = project_store.create_project(raw_name)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileExistsError:
+            return jsonify({"error": "project already exists"}), 409
+
+        session["active_project"] = project_name
+        return jsonify({"success": True, "project": project_name}), 201
+
+    @app.post("/api/projects/select")
+    @login_required
+    def api_projects_select():
+        data = request.get_json(force=True, silent=True) or {}
+        raw_project = str(data.get("project") or "")
+        if not raw_project:
+            return jsonify({"error": "project is required"}), 400
+
+        try:
+            project = resolve_project(explicit=raw_project)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found"}), 404
+
+        return jsonify({"success": True, "active_project": project})
+
     @app.get("/images")
     @login_required
     def images():
         count = _safe_int(request.args.get("count"), DEFAULT_IMAGE_COUNT)
-        folder = str(request.args.get("folder") or "input")
-        images, total = service.list_images(count=count, folder=folder)
-        return jsonify({"images": images, "total_available": total})
+        folder = _canonical_folder(request.args.get("folder"))
+        explicit_project = request.args.get("project")
+
+        try:
+            project = resolve_project(explicit=explicit_project)
+            service = service_for_project(project)
+            images, total = service.list_images(count=count, folder=folder)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found"}), 404
+        return jsonify({"images": images, "total_available": total, "project": project})
 
     @app.get("/counts")
     @login_required
     def counts():
+        explicit_project = request.args.get("project")
         try:
-            return jsonify(service.counts())
+            project = resolve_project(explicit=explicit_project)
+            service = service_for_project(project)
+            payload = service.counts()
+            payload["project"] = project
+            return jsonify(payload)
+        except ValueError as e:
+            return jsonify({"error": str(e), SOURCE_FOLDER: 0}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found", SOURCE_FOLDER: 0}), 404
         except Exception as e:
-            return jsonify({"error": str(e), "input": 0}), 500
+            return jsonify({"error": str(e), SOURCE_FOLDER: 0}), 500
 
     @app.get("/image/<path:filename>")
     @login_required
     def image(filename: str):
-        folder = str(request.args.get("folder") or "input")
-        if folder == "input":
-            directory = paths.input_dir
-        else:
-            directory = paths.label_dirs.get(folder) or paths.input_dir
+        folder = _canonical_folder(request.args.get("folder"))
+        explicit_project = request.args.get("project")
+        try:
+            project = resolve_project(explicit=explicit_project)
+            project_paths = project_store.paths_for_project(project)
+            if folder == SOURCE_FOLDER:
+                directory = project_paths.source_dir
+            else:
+                directory = project_paths.label_dirs.get(folder) or project_paths.source_dir
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found"}), 404
+
         return send_from_directory(directory, filename)
 
     @app.post("/api/label")
@@ -159,13 +247,24 @@ def create_app() -> Flask:
     def api_label():
         data = request.get_json(force=True, silent=True) or {}
         filename = str(data.get("filename") or "")
-        label = str(data.get("label") or "")
-        source = str(data.get("source") or "input")
-        if not filename or not label:
+        raw_label = data.get("label")
+        if raw_label is None or str(raw_label) == "":
+            return jsonify({"error": "filename and label required"}), 400
+        label = _canonical_folder(raw_label)
+        source = _canonical_folder(data.get("source"))
+        explicit_project = data.get("project")
+
+        if not filename:
             return jsonify({"error": "filename and label required"}), 400
         try:
+            project = resolve_project(explicit=explicit_project)
+            service = service_for_project(project)
             service.label_image(filename=filename, label=label, source_folder=source)
-            return jsonify({"success": True})
+            return jsonify({"success": True, "project": project})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found"}), 404
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -173,24 +272,37 @@ def create_app() -> Flask:
     @login_required
     def api_process():
         data = request.get_json(force=True, silent=True) or {}
-        folder = str(data.get("folder") or "")
+        folder = _canonical_folder(data.get("folder"))
+        explicit_project = data.get("project")
+
         if folder not in LABELS:
             return jsonify({"error": "folder must be one of: good, regenerate, upscale, bad"}), 400
 
-        if folder == "bad":
-            try:
-                deleted = service.archive_images(folder=folder)
-                return jsonify({"success": True, "deleted": deleted})
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-
-        _images, total = service.list_images(count=0, folder=folder)
-        return jsonify({"success": True, "folder": folder, "total_available": total})
+        try:
+            project = resolve_project(explicit=explicit_project)
+            service = service_for_project(project)
+            _images, total = service.list_images(count=0, folder=folder)
+            return jsonify({"success": True, "folder": folder, "total_available": total, "project": project})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found"}), 404
 
     @app.get("/api/config")
     @login_required
     def api_config():
-        return jsonify(service.public_config())
+        explicit_project = request.args.get("project")
+        try:
+            project = resolve_project(explicit=explicit_project)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found"}), 404
+
+        service = service_for_project(project)
+        payload = service.public_config()
+        payload.update({"source_folder": SOURCE_FOLDER, "active_project": project})
+        return jsonify(payload)
 
     @app.post("/api/upload")
     def api_upload():
@@ -207,11 +319,24 @@ def create_app() -> Flask:
         if "file" not in request.files:
             return jsonify({"error": "multipart form field 'file' required"}), 400
 
+        explicit_project = request.form.get("project") or request.args.get("project")
+        try:
+            project = resolve_project(explicit=explicit_project)
+            service = service_for_project(project)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except FileNotFoundError:
+            return jsonify({"error": "project not found"}), 404
+
         f = request.files["file"]
         name = f.filename or "upload"
         data = f.read()
-        out = service.upload(filename=name, data=data)
-        return jsonify({"success": True, "filename": out})
+
+        try:
+            out = service.upload(filename=name, data=data)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"success": True, "filename": out, "project": project})
 
     @app.errorhandler(RequestEntityTooLarge)
     def request_too_large(_error):

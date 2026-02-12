@@ -10,17 +10,17 @@ class ImageSorterService:
         self._default_image_count = int(default_image_count)
         self._default_grid_columns = int(default_grid_columns)
 
-    def list_images(self, count: int, folder: str = "input") -> Tuple[List[str], int]:
+    def list_images(self, count: int, folder: str = "unlabeled") -> Tuple[List[str], int]:
         # Don't filter based on per-process memory. With multiple gunicorn workers,
         # that causes inconsistent responses and visible flicker in the UI.
         return self._store.list_images_in_folder(folder=folder, count=count, processed=set())
 
-    def label_image(self, filename: str, label: str, source_folder: str = "input") -> None:
+    def label_image(self, filename: str, label: str, source_folder: str = "unlabeled") -> None:
         self._store.move_between_folders(filename=filename, source_folder=source_folder, dest_folder=label)
 
     def counts(self) -> Dict[str, int]:
         c = self._store.counts()
-        out = {"input": c.input}
+        out = {"unlabeled": c.unlabeled}
         out.update(c.by_label)
         return out
 

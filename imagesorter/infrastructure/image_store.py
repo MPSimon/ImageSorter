@@ -21,15 +21,12 @@ IMAGE_EXTS = {
     ".tiff",
 }
 
+SOURCE_ALIASES = {"unlabeled", "input"}
+
 
 def _is_image_filename(name: str) -> bool:
     _, ext = os.path.splitext(name)
     return ext.lower() in IMAGE_EXTS
-
-
-class _MaxStr(str):
-    def __lt__(self, other):
-        return str(self) > str(other)
 
 
 class _MaxKey:
@@ -42,31 +39,29 @@ class _MaxKey:
         return self.key > other.key
 
 
-
 @dataclass(frozen=True)
 class Counts:
-    input: int
+    unlabeled: int
     by_label: Dict[str, int]
 
 
 class ImageStore:
-    def __init__(self, input_dir: Path, label_dirs: Dict[str, Path]):
-        self._input_dir = input_dir
+    def __init__(self, source_dir: Path, label_dirs: Dict[str, Path]):
+        self._source_dir = source_dir
         self._label_dirs = label_dirs
 
     @property
-    def input_dir(self) -> Path:
-        return self._input_dir
+    def source_dir(self) -> Path:
+        return self._source_dir
 
     def ensure_dirs(self) -> None:
-        if not self._input_dir.exists() or not self._input_dir.is_dir():
-            raise FileNotFoundError(f"input_dir does not exist or is not a directory: {str(self._input_dir)!r}")
+        self._source_dir.mkdir(parents=True, exist_ok=True)
         for _, d in self._label_dirs.items():
             d.mkdir(parents=True, exist_ok=True)
 
     def dir_for_folder(self, folder: str) -> Path:
-        if folder in ("input", "unlabeled"):
-            return self._input_dir
+        if folder in SOURCE_ALIASES:
+            return self._source_dir
         d = self._label_dirs.get(folder)
         if d is None:
             raise ValueError(f"unknown folder: {folder}")
@@ -107,9 +102,6 @@ class ImageStore:
         batch = [x.name for x in heap]
         return batch, total
 
-    def list_images(self, count: int, processed: Set[str]) -> Tuple[List[str], int]:
-        return self._list_images_in_dir(directory=self._input_dir, count=count, processed=processed)
-
     def list_images_in_folder(self, folder: str, count: int, processed: Set[str]) -> Tuple[List[str], int]:
         directory = self.dir_for_folder(folder)
         return self._list_images_in_dir(directory=directory, count=count, processed=processed)
@@ -138,16 +130,13 @@ class ImageStore:
         dest = dest_dir / filename
         self._move(src, dest)
 
-    def move_to_label(self, filename: str, label: str) -> None:
-        self.move_between_folders(filename=filename, source_folder="input", dest_folder=label)
-
     def counts(self) -> Counts:
         self.ensure_dirs()
-        input_n = 0
-        with os.scandir(self._input_dir) as it:
+        source_n = 0
+        with os.scandir(self._source_dir) as it:
             for entry in it:
                 if entry.is_file() and _is_image_filename(entry.name):
-                    input_n += 1
+                    source_n += 1
 
         by_label: Dict[str, int] = {}
         for label, d in self._label_dirs.items():
@@ -159,7 +148,7 @@ class ImageStore:
                             n += 1
             by_label[label] = n
 
-        return Counts(input=input_n, by_label=by_label)
+        return Counts(unlabeled=source_n, by_label=by_label)
 
     def save_upload(self, original_filename: str, data: bytes) -> str:
         self.ensure_dirs()
@@ -169,6 +158,6 @@ class ImageStore:
             raise ValueError("unsupported file extension")
 
         name = f"{time.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(4)}-{base}{ext.lower()}"
-        out = self._input_dir / name
+        out = self._source_dir / name
         out.write_bytes(data)
         return name
