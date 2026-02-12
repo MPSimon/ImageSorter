@@ -161,6 +161,40 @@
                 flex: 0 0 auto;
                 opacity: 0.95;
             }
+            .fullscreen-action {
+                position: absolute;
+                top: 8px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 6;
+                width: 34px;
+                height: 34px;
+                border: 1px solid rgba(255,255,255,0.24);
+                border-radius: 999px;
+                background: rgba(2, 6, 23, 0.58);
+                color: rgba(255,255,255,0.96);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                cursor: pointer;
+                opacity: 0;
+                pointer-events: auto;
+                box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+                transition: opacity 120ms ease, background-color 120ms ease, transform 120ms ease;
+            }
+            .image-item:hover .fullscreen-action {
+                opacity: 1;
+            }
+            .fullscreen-action:hover {
+                background: rgba(2, 6, 23, 0.78);
+                transform: translateX(-50%) scale(1.04);
+            }
+            .fullscreen-action svg {
+                width: 16px;
+                height: 16px;
+                opacity: 0.96;
+            }
         .toggle-sidebar {
             background: none;
             border: none;
@@ -277,6 +311,73 @@
             .zone-bottom-right {
                 bottom: 8px;
                 right: 8px;
+            }
+            .image-item.is-fullscreen {
+                width: 100vw;
+                height: 100vh;
+                max-width: none;
+                max-height: none;
+                padding-bottom: 0;
+                border: none;
+                border-radius: 0;
+                background: #020617;
+                overflow: hidden;
+                cursor: default;
+            }
+            .image-item.is-fullscreen img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+            .image-item.is-fullscreen .image-overlay,
+            .image-item.is-fullscreen .corner-action,
+            .image-item.is-fullscreen .zone-corner-action,
+            .image-item.is-fullscreen .fullscreen-action {
+                display: none;
+            }
+            .fullscreen-nav {
+                position: absolute;
+                inset: 0;
+                z-index: 8;
+                pointer-events: none;
+            }
+            .fullscreen-prev,
+            .fullscreen-next,
+            .fullscreen-close {
+                position: absolute;
+                border: 1px solid rgba(255,255,255,0.28);
+                background: rgba(2, 6, 23, 0.62);
+                color: rgba(255,255,255,0.96);
+                border-radius: 999px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 800;
+                cursor: pointer;
+                pointer-events: auto;
+                box-shadow: 0 14px 36px rgba(0,0,0,0.34);
+            }
+            .fullscreen-prev,
+            .fullscreen-next {
+                top: 50%;
+                transform: translateY(-50%);
+                width: 44px;
+                height: 44px;
+                font-size: 24px;
+            }
+            .fullscreen-prev { left: 18px; }
+            .fullscreen-next { right: 18px; }
+            .fullscreen-close {
+                top: 18px;
+                right: 18px;
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+            .fullscreen-prev:disabled,
+            .fullscreen-next:disabled {
+                opacity: 0.38;
+                cursor: default;
             }
         .selected::before {
             content: "";
@@ -545,12 +646,16 @@
             const createProjectBtn = document.getElementById('create-project-btn');
             const newProjectNameInput = document.getElementById('new-project-name');
 
-	        let displayedImages = [];
-	        let autoRefreshInterval = null;
-	        let lastTotalAvailable = 0;
+		        let displayedImages = [];
+		        let autoRefreshInterval = null;
+		        let lastTotalAvailable = 0;
             let appConfig = null;
             let currentFolder = 'unlabeled';
             let currentProject = '';
+            let fullscreenIndex = -1;
+            let fullscreenContainer = null;
+            let fullscreenControls = null;
+            let fullscreenOriginal = null;
             const UI_PREFS_KEY = 'imagesorter.ui_prefs.v1';
 
             const ZONE_COLORS = {
@@ -715,9 +820,12 @@
 
 	        async function loadImages(isAutoRefresh = false) {
             if (!currentProject) return;
+            if (fullscreenIndex >= 0) {
+                await exitFullscreenMode();
+            }
             console.log(isAutoRefresh ? 'Auto-refreshing images...' : 'Loading images...');
             const count = imageCountInput.value;
-	            const response = await fetchWithErrorHandling(`/images?count=${count}&folder=${encodeURIComponent(currentFolder)}&project=${encodeURIComponent(currentProject)}`);
+		            const response = await fetchWithErrorHandling(`/images?count=${count}&folder=${encodeURIComponent(currentFolder)}&project=${encodeURIComponent(currentProject)}`);
 
             if (response) {
                 const images = response.images || [];
@@ -740,10 +848,23 @@
 		                    images.forEach(image => {
 		                        const imgContainer = document.createElement('div');
 		                        imgContainer.classList.add('image-item');
+                                imgContainer.dataset.filename = image;
 		                        const img = document.createElement('img');
 		                        img.src = `/image/${encodeURIComponent(image)}?folder=${encodeURIComponent(currentFolder)}&project=${encodeURIComponent(currentProject)}`;
 		                        img.alt = image;
 		                        imgContainer.appendChild(img);
+
+                                const fullscreenBtn = document.createElement('button');
+                                fullscreenBtn.className = 'fullscreen-action';
+                                fullscreenBtn.type = 'button';
+                                fullscreenBtn.setAttribute('aria-label', 'Fullscreen image');
+                                fullscreenBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 3h3a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 21H5a2 2 0 0 1-2-2v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 21h3a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+                                fullscreenBtn.addEventListener('click', async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    await openFullscreenForImage(image, imgContainer);
+                                });
+                                imgContainer.appendChild(fullscreenBtn);
 
                                 if (currentFolder !== 'unlabeled') {
                                     const back = document.createElement('button');
@@ -829,10 +950,210 @@
             }
 
 	            async function handleZoneClick(ev, imgContainer, filename) {
+                    if (fullscreenIndex >= 0) return;
+                    if (ev.target && ev.target.closest('.fullscreen-action')) return;
+                    if (ev.target && ev.target.closest('.fullscreen-nav')) return;
+                    if (ev.target && ev.target.closest('.corner-action')) return;
+                    if (ev.target && ev.target.closest('.zone-corner-action')) return;
 	                const labels = (appConfig && appConfig.labels) ? appConfig.labels : ['good', 'regenerate', 'upscale', 'bad'];
 	                const idx = quadrantForClick(imgContainer, ev);
 	                const label = labels[idx] || labels[0];
                 await applyLabel(imgContainer, filename, label);
+            }
+
+            function imageSrcFor(filename) {
+                return `/image/${encodeURIComponent(filename)}?folder=${encodeURIComponent(currentFolder)}&project=${encodeURIComponent(currentProject)}`;
+            }
+
+            function activeFullscreenElement() {
+                return document.fullscreenElement || document.webkitFullscreenElement || null;
+            }
+
+            async function requestFullscreenFor(el) {
+                if (!el) return;
+                if (el.requestFullscreen) {
+                    await el.requestFullscreen();
+                    return;
+                }
+                if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                }
+            }
+
+            async function exitDocumentFullscreen() {
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                    return;
+                }
+                if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+
+            function updateFullscreenButtons() {
+                if (!fullscreenControls) return;
+                fullscreenControls.prev.disabled = fullscreenIndex <= 0;
+                fullscreenControls.next.disabled = fullscreenIndex >= displayedImages.length - 1;
+            }
+
+            function applyFullscreenImage(index) {
+                if (!fullscreenContainer) return false;
+                const filename = displayedImages[index];
+                if (!filename) return false;
+                const img = fullscreenContainer.querySelector('img');
+                if (!img) return false;
+                img.src = imageSrcFor(filename);
+                img.alt = filename;
+                fullscreenContainer.dataset.fullscreenFilename = filename;
+                updateFullscreenButtons();
+                return true;
+            }
+
+            function mountFullscreenControls() {
+                if (!fullscreenContainer) return;
+                if (fullscreenControls && fullscreenControls.root && fullscreenControls.root.parentNode === fullscreenContainer) {
+                    updateFullscreenButtons();
+                    return;
+                }
+                const nav = document.createElement('div');
+                nav.className = 'fullscreen-nav';
+
+                const prev = document.createElement('button');
+                prev.className = 'fullscreen-prev';
+                prev.type = 'button';
+                prev.setAttribute('aria-label', 'Previous image');
+                prev.textContent = '‹';
+                prev.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    showFullscreenIndex(fullscreenIndex - 1);
+                });
+
+                const next = document.createElement('button');
+                next.className = 'fullscreen-next';
+                next.type = 'button';
+                next.setAttribute('aria-label', 'Next image');
+                next.textContent = '›';
+                next.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    showFullscreenIndex(fullscreenIndex + 1);
+                });
+
+                const close = document.createElement('button');
+                close.className = 'fullscreen-close';
+                close.type = 'button';
+                close.setAttribute('aria-label', 'Close fullscreen');
+                close.textContent = '×';
+                close.addEventListener('click', async (ev) => {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    await exitFullscreenMode();
+                });
+
+                nav.appendChild(prev);
+                nav.appendChild(next);
+                nav.appendChild(close);
+                fullscreenContainer.appendChild(nav);
+                fullscreenControls = { root: nav, prev, next, close };
+                updateFullscreenButtons();
+            }
+
+            function unmountFullscreenControls() {
+                if (!fullscreenControls || !fullscreenControls.root) return;
+                fullscreenControls.root.remove();
+                fullscreenControls = null;
+            }
+
+            function cleanupFullscreenState() {
+                if (fullscreenContainer && fullscreenOriginal && fullscreenContainer.isConnected) {
+                    const img = fullscreenContainer.querySelector('img');
+                    if (img) {
+                        img.src = fullscreenOriginal.src;
+                        img.alt = fullscreenOriginal.alt;
+                    }
+                    if (fullscreenOriginal.filename) {
+                        fullscreenContainer.dataset.filename = fullscreenOriginal.filename;
+                    }
+                    delete fullscreenContainer.dataset.fullscreenFilename;
+                    fullscreenContainer.classList.remove('is-fullscreen');
+                }
+                unmountFullscreenControls();
+                fullscreenContainer = null;
+                fullscreenOriginal = null;
+                fullscreenIndex = -1;
+            }
+
+            async function openFullscreenForImage(filename, container = null) {
+                const idx = displayedImages.indexOf(filename);
+                if (idx < 0) return;
+                if (fullscreenIndex >= 0) {
+                    cleanupFullscreenState();
+                }
+                const target = container || Array.from(imageContainer.querySelectorAll('.image-item')).find((el) => el.dataset.filename === filename);
+                if (!target) return;
+                const img = target.querySelector('img');
+                if (!img) return;
+
+                fullscreenIndex = idx;
+                fullscreenContainer = target;
+                fullscreenOriginal = {
+                    filename: target.dataset.filename || filename,
+                    src: img.src,
+                    alt: img.alt,
+                };
+
+                fullscreenContainer.classList.add('is-fullscreen');
+                mountFullscreenControls();
+                applyFullscreenImage(fullscreenIndex);
+
+                try {
+                    await requestFullscreenFor(fullscreenContainer);
+                } catch (err) {
+                    console.warn('Could not enter fullscreen:', err);
+                    cleanupFullscreenState();
+                }
+            }
+
+            async function exitFullscreenMode() {
+                const active = activeFullscreenElement();
+                if (active) {
+                    await exitDocumentFullscreen();
+                    return;
+                }
+                cleanupFullscreenState();
+            }
+
+            function showFullscreenIndex(index) {
+                if (fullscreenIndex < 0) return;
+                if (index < 0 || index >= displayedImages.length) return;
+                fullscreenIndex = index;
+                applyFullscreenImage(fullscreenIndex);
+            }
+
+            function handleFullscreenKeydown(ev) {
+                if (fullscreenIndex < 0) return;
+                if (ev.key === 'ArrowLeft') {
+                    ev.preventDefault();
+                    showFullscreenIndex(fullscreenIndex - 1);
+                    return;
+                }
+                if (ev.key === 'ArrowRight') {
+                    ev.preventDefault();
+                    showFullscreenIndex(fullscreenIndex + 1);
+                    return;
+                }
+                if (ev.key === 'Escape') {
+                    ev.preventDefault();
+                    exitFullscreenMode();
+                }
+            }
+
+            function onFullscreenChange() {
+                const active = activeFullscreenElement();
+                if (!active) {
+                    cleanupFullscreenState();
+                }
             }
 
             async function applyLabel(imgContainer, filename, label) {
@@ -930,6 +1251,9 @@
                     await switchProject(ev.target.value);
                 });
             }
+            document.addEventListener('fullscreenchange', onFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+            document.addEventListener('keydown', handleFullscreenKeydown);
 
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
