@@ -988,6 +988,11 @@
             }
 
 	            async function handleZoneClick(ev, imgContainer, filename) {
+	                // Ignore clicks on buttons (fullscreen, unlabel, corner labels)
+	                if (ev.target.tagName === 'BUTTON' || ev.target.closest('button')) {
+	                    return;
+	                }
+
 	                const labels = (appConfig && appConfig.labels) ? appConfig.labels : ['good', 'regenerate', 'upscale', 'bad'];
 	                const idx = quadrantForClick(imgContainer, ev);
 	                const label = labels[idx] || labels[0];
