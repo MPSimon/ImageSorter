@@ -50,6 +50,24 @@
         }
         .sidebar-content {
             padding: 20px;
+            min-height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .sidebar-bottom {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
         .main-content {
             flex-grow: 1;
@@ -285,12 +303,12 @@
         .controls {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
         }
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
         }
         input[type="text"], input[type="number"], input[type="range"] {
             width: 100%;
@@ -312,6 +330,71 @@
         button:hover {
             background-color: #27ae60;
         }
+        .project-panel {
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 12px;
+            background: linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .project-panel-title {
+            margin: 0;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #dfe6e9;
+        }
+        .project-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        #new-project-name {
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(15, 23, 42, 0.72);
+            padding: 10px 11px;
+        }
+        #create-project-btn {
+            white-space: nowrap;
+            border-radius: 10px;
+            font-weight: 700;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: #f8fafc;
+        }
+        #create-project-btn:hover {
+            background: linear-gradient(135deg, #15803d, #16a34a);
+        }
+        #project-select {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(15,23,42,0.75));
+            color: #f8fafc;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 11px 38px 11px 12px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image:
+                linear-gradient(45deg, transparent 50%, #9ae6b4 50%),
+                linear-gradient(135deg, #9ae6b4 50%, transparent 50%);
+            background-position:
+                calc(100% - 18px) calc(50% - 2px),
+                calc(100% - 12px) calc(50% - 2px);
+            background-size: 6px 6px, 6px 6px;
+            background-repeat: no-repeat;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2), 0 8px 18px rgba(0,0,0,0.18);
+        }
+        #project-select:focus,
+        #new-project-name:focus {
+            outline: none;
+            border-color: rgba(34, 197, 94, 0.8);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+        }
         #submit-btn {
             background-color: var(--primary-color);
             font-size: 1.1em;
@@ -321,12 +404,17 @@
             background-color: #2980b9;
         }
         .directory-counts {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
         }
         .count-item {
             text-align: center;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px 4px;
+            font-size: 12px;
         }
         .count-value {
             font-weight: bold;
@@ -354,61 +442,66 @@
     </style>
 </head>
 <body>
-    <div class="app-container">
+	    <div class="app-container">
         <aside class="sidebar">
 	            <div class="sidebar-content">
 	                <h2>Image Sorter Controls</h2>
-                    <div class="control-group">
-                        <label for="project-select">Active Project:</label>
-                        <select id="project-select"></select>
-                    </div>
-                    <div class="control-group">
-                        <label for="new-project-name">Create Project:</label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="new-project-name" placeholder="project-name" />
-                            <button id="create-project-btn" type="button">Create</button>
+                    <div class="sidebar-top">
+                        <div class="project-panel">
+                            <h3 class="project-panel-title">Create Project</h3>
+                            <div class="project-input-row">
+                                <input type="text" id="new-project-name" placeholder="project-name" />
+                                <button id="create-project-btn" type="button">Create</button>
+                            </div>
+                        </div>
+                        <div class="project-panel">
+                            <h3 class="project-panel-title">Active Project</h3>
+                            <select id="project-select"></select>
                         </div>
                     </div>
-	                <div class="controls">
-	                    <div class="control-group">
-	                        <label for="grid-columns">Grid Columns: <span id="column-value">5</span></label>
-	                        <input type="range" id="grid-columns" min="1" max="10" value="5">
-	                    </div>
-                    <div class="control-group">
-                        <label for="image-count-input">Images to Display:</label>
-                        <input type="number" id="image-count-input" min="1" max="100" value="20">
+
+                    <div class="sidebar-bottom">
+	                    <div class="controls">
+	                        <div class="control-group">
+	                            <label for="grid-columns">Grid Columns: <span id="column-value">5</span></label>
+	                            <input type="range" id="grid-columns" min="1" max="10" value="5">
+	                        </div>
+                        <div class="control-group">
+                            <label for="image-count-input">Images to Display:</label>
+                            <input type="number" id="image-count-input" min="1" max="100" value="20">
+                        </div>
+                        <button id="load-images-btn">Reload Images</button>
                     </div>
-                    <button id="load-images-btn">Reload Images</button>
-                </div>
-	                <div class="directory-counts">
-		                    <div class="count-item">
-		                        <div>Unlabeled</div>
-		                        <div id="unlabeled-count" class="count-value">0</div>
-		                    </div>
-	                    <div class="count-item">
-	                        <div>Good</div>
-	                        <div id="good-count" class="count-value">0</div>
+	                    <div class="directory-counts">
+	                        <div class="count-item">
+	                            <div>Unlabeled</div>
+	                            <div id="unlabeled-count" class="count-value">0</div>
+	                        </div>
+	                        <div class="count-item">
+	                            <div>Good</div>
+	                            <div id="good-count" class="count-value">0</div>
+	                        </div>
+	                        <div class="count-item">
+	                            <div>Regen</div>
+	                            <div id="regenerate-count" class="count-value">0</div>
+	                        </div>
+	                        <div class="count-item">
+	                            <div>Upscale</div>
+	                            <div id="upscale-count" class="count-value">0</div>
+	                        </div>
+	                        <div class="count-item">
+	                            <div>Bad</div>
+	                            <div id="bad-count" class="count-value">0</div>
+	                        </div>
 	                    </div>
-	                    <div class="count-item">
-	                        <div>Regen</div>
-	                        <div id="regenerate-count" class="count-value">0</div>
-	                    </div>
-	                    <div class="count-item">
-	                        <div>Upscale</div>
-	                        <div id="upscale-count" class="count-value">0</div>
-	                    </div>
-	                    <div class="count-item">
-	                        <div>Bad</div>
-	                        <div id="bad-count" class="count-value">0</div>
-	                    </div>
-	                </div>
-                
-	                    <div id="process-panel" style="margin-top: 12px; padding: 12px; border: 1px solid #eee; border-radius: 8px; display: none;">
+                    
+	                    <div id="process-panel" style="margin-top: 4px; padding: 12px; border: 1px solid #eee; border-radius: 8px; display: none;">
 	                        <div style="font-weight: 700; margin-bottom: 8px;">Processing</div>
 	                        <div id="process-folder-status" style="font-size: 0.9em; opacity: 0.85; margin-bottom: 10px; display: none;"></div>
 	                        <button id="process-folder-btn" style="width: 100%; display: none;">Process Images In This Folder</button>
                         <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.75;">
                             For future automation: this will trigger actions for images currently in the selected folder.
+                        </div>
                         </div>
                     </div>
 	            </div>
